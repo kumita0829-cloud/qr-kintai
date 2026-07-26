@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR勤怠管理システム - 月次残業・スプレッドシート連携対応</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- HTML5 QR Code Reader Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- QRCode Generator Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        @media print {
+            .no-print { display: none !important; }
+            body { background-color: white !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Navigation Header -->
+    <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-40 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-indigo-600 p-2 rounded-xl shadow-inner">
+                        <i data-lucide="qr-code" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight tracking-wide flex items-center gap-2">
+                            QR勤怠管理システム
+                            <span id="sync-badge" class="text-[10px] bg-slate-500/30 text-slate-300 border border-slate-400/40 px-2 py-0.5 rounded-full font-normal hidden sm:inline-flex items-center gap-1">
+                                <i data-lucide="hard-drive" class="w-3 h-3"></i> ローカル保存中
+                            </span>
+                        </h1>
+                        <p class="text-xs text-indigo-200">Smart Attendance & Overtime Tracker</p>
+                    </div>
+                </div>
+
+                <!-- Live Clock -->
+                <div class="hidden md:flex items-center space-x-2 bg-indigo-950/60 px-4 py-1.5 rounded-full border border-indigo-700/50">
+                    <i data-lucide="clock" class="w-4 h-4 text-indigo-300"></i>
+                    <span id="nav-clock" class="font-mono text-sm tracking-widest text-indigo-100 font-semibold">00:00:00</span>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="flex space-x-1 sm:space-x-1.5 text-xs sm:text-sm">
+                    <button onclick="switchTab('kiosk')" id="tab-btn-kiosk" class="tab-btn px-3 py-2 rounded-lg font-medium flex items-center space-x-1 transition-colors bg-indigo-700 text-white">
+                        <i data-lucide="camera" class="w-4 h-4"></i>
+                        <span>打刻</span>
+                    </button>
+                    <button onclick="switchTab('logs')" id="tab-btn-logs" class="tab-btn px-3 py-2 rounded-lg font-medium flex items-center space-x-1 transition-colors text-indigo-200 hover:bg-indigo-800 hover:text-white">
+                        <i data-lucide="history" class="w-4 h-4"></i>
+                        <span>打刻履歴</span>
+                    </button>
+                    <button onclick="switchTab('monthly')" id="tab-btn-monthly" class="tab-btn px-3 py-2 rounded-lg font-medium flex items-center space-x-1 transition-colors text-indigo-200 hover:bg-indigo-800 hover:text-white">
+                        <i data-lucide="calendar-range" class="w-4 h-4"></i>
+                        <span class="font-semibold text-amber-300">月次残業集計</span>
+                    </button>
+                    <button onclick="switchTab('employees')" id="tab-btn-employees" class="tab-btn px-3 py-2 rounded-lg font-medium flex items-center space-x-1 transition-colors text-indigo-200 hover:bg-indigo-800 hover:text-white">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>名簿・QR発行</span>
+                    </button>
+                    <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab-btn px-3 py-2 rounded-lg font-medium flex items-center space-x-1 transition-colors text-indigo-200 hover:bg-indigo-800 hover:text-white">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">連携設定</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- TAB 1: KIOSK (受付・打刻) -->
+        <div id="tab-kiosk" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Left Column: Scanner Window -->
+                <div class="lg:col-span-7 flex flex-col space-y-4">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col items-center">
+                        <!-- Mode Selector Bar -->
+                        <div class="w-full flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                            <span class="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                                <i data-lucide="sliders" class="w-4 h-4 text-indigo-600"></i> 打刻種別
+                            </span>
+                            <div class="flex bg-slate-100 p-1 rounded-xl gap-1 text-xs sm:text-sm font-medium">
+                                <button onclick="setPunchMode('AUTO')" id="mode-AUTO" class="mode-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white shadow-sm transition font-bold">自動判別</button>
+                                <button onclick="setPunchMode('IN')" id="mode-IN" class="mode-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">出勤</button>
+                                <button onclick="setPunchMode('OUT')" id="mode-OUT" class="mode-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">退勤</button>
+                            </div>
+                        </div>
+
+                        <!-- Current Time Banner -->
+                        <div class="text-center mb-4">
+                            <div id="kiosk-date" class="text-slate-500 text-sm font-medium">----年--月--日(--)</div>
+                            <div id="kiosk-clock" class="text-5xl font-black text-slate-800 tracking-tight font-mono my-1">00:00:00</div>
+                            <div id="mode-description" class="text-xs text-indigo-600 font-medium bg-indigo-50 px-3 py-1 rounded-full inline-block">
+                                ※ 本日の1回目は出勤、2回目は退勤として自動記録します
+                            </div>
+                        </div>
+
+                        <!-- Secure Context Warning -->
+                        <div id="https-warning" class="hidden w-full mb-3 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-start gap-2">
+                            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                            <div><span class="font-bold">注意:</span> カメラは <strong>https://</strong> または <strong>localhost</strong> で動作します。</div>
+                        </div>
+
+                        <!-- Camera Scanner Container -->
+                        <div class="relative w-full max-w-md aspect-square bg-slate-900 rounded-2xl overflow-hidden shadow-inner flex flex-col items-center justify-center border-4 border-slate-800">
+                            <div id="reader" class="w-full h-full object-cover flex items-center justify-center text-slate-400 text-xs text-center p-4"></div>
+                            
+                            <div id="scanner-overlay" class="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
+                                <div class="w-56 h-56 border-2 border-indigo-400/80 rounded-2xl relative flex items-center justify-center animate-pulse">
+                                    <div class="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-indigo-500 rounded-tl-lg"></div>
+                                    <div class="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-indigo-500 rounded-tr-lg"></div>
+                                    <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-indigo-500 rounded-bl-lg"></div>
+                                    <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-indigo-500 rounded-br-lg"></div>
+                                </div>
+                                <p class="text-white/80 text-xs mt-4 bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                                    個人用QRコードを枠内にかざしてください
+                                </p>
+                            </div>
+
+                            <!-- Success Toast Banner -->
+                            <div id="scan-feedback" class="absolute inset-x-4 bottom-4 bg-emerald-600 text-white p-4 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-32 opacity-0 transition-all duration-300 pointer-events-none z-20">
+                                <div class="p-2 bg-white/20 rounded-lg shrink-0">
+                                    <i data-lucide="check-circle-2" class="w-8 h-8 text-white"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div id="feedback-type" class="text-xs font-bold uppercase tracking-wider text-emerald-100">出勤完了</div>
+                                    <div id="feedback-name" class="text-lg font-bold truncate">---</div>
+                                    <div id="feedback-time" class="text-xs text-emerald-100 font-mono">00:00:00 打刻完了</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Camera Controls -->
+                        <div class="w-full mt-4 space-y-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                                <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                                    <i data-lucide="camera" class="w-4 h-4 text-indigo-600 shrink-0"></i>
+                                    <select id="camera-select" onchange="switchCameraDevice(this.value)" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                                        <option value="">カメラを検出中...</option>
+                                    </select>
+                                </div>
+                                <button onclick="toggleCamera()" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition shadow-sm shrink-0">
+                                    <i data-lucide="power" class="w-3.5 h-3.5"></i>
+                                    <span id="camera-status-text">カメラON/OFF</span>
+                                </button>
+                            </div>
+
+                            <div class="flex items-center justify-end gap-2 text-xs">
+                                <button onclick="openManualEntryModal()" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-medium transition border border-amber-200">
+                                    <i data-lucide="edit" class="w-4 h-4 text-amber-600"></i>
+                                    <span>打ち忘れ手動入力</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Today Status & Feed -->
+                <div class="lg:col-span-5 flex flex-col space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-3">
+                            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                                <i data-lucide="log-in" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs text-slate-500 font-medium">本日出勤</div>
+                                <div id="stat-today-in" class="text-2xl font-bold text-slate-800">0名</div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-3">
+                            <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                                <i data-lucide="log-out" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs text-slate-500 font-medium">本日退勤済</div>
+                                <div id="stat-today-out" class="text-2xl font-bold text-slate-800">0名</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex-1 flex flex-col">
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                            <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm">
+                                <i data-lucide="activity" class="w-4 h-4 text-indigo-600"></i> リアルタイム打刻状況
+                            </h3>
+                            <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">本日</span>
+                        </div>
+
+                        <div id="recent-logs-list" class="flex-1 overflow-y-auto divide-y divide-slate-100 max-h-[380px] my-2">
+                            <div class="py-8 text-center text-slate-400 text-sm">本日の打刻データはまだありません</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- TAB 2: LOGS (打刻履歴・詳細) -->
+        <div id="tab-logs" class="tab-content hidden space-y-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-3 items-center justify-between">
+                <div class="flex flex-wrap items-center gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">日付</label>
+                        <input type="date" id="filter-date" onchange="renderLogsTable()" class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">役職</label>
+                        <select id="filter-role" onchange="renderLogsTable()" class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="ALL">全ての役職</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">名前/ID検索</label>
+                        <input type="text" id="filter-keyword" onkeyup="renderLogsTable()" placeholder="検索..." class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="openManualEntryModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i> 手動打刻の追加
+                    </button>
+                    <button onclick="exportToCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
+                        <i data-lucide="download" class="w-4 h-4"></i> 日別全打刻CSV出力
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-xs border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3.5">日時</th>
+                                <th class="px-4 py-3.5">従業員ID</th>
+                                <th class="px-4 py-3.5">名前</th>
+                                <th class="px-4 py-3.5">役職</th>
+                                <th class="px-4 py-3.5">打刻種別</th>
+                                <th class="px-4 py-3.5">入力方法</th>
+                                <th class="px-4 py-3.5 text-right">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-table-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: MONTHLY OVERTIME REPORT (月次残業集計) -->
+        <div id="tab-monthly" class="tab-content hidden space-y-6">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="calendar-check" class="w-5 h-5 text-indigo-600"></i> 月次勤怠・残業集計報告シート
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">月ごとの実労働時間・終業時刻（規定）を超えた残業時間を自動集計します。</p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center space-x-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                        <label class="text-xs font-bold text-slate-600 px-2">対象月:</label>
+                        <input type="month" id="monthly-select-month" onchange="renderMonthlyOvertimeReport()" class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <button onclick="syncMonthlyToGoogleSheet()" class="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-xs font-bold rounded-xl transition flex items-center gap-1.5">
+                        <i data-lucide="cloud-upload" class="w-4 h-4 text-emerald-600"></i> スプレッドシートへ月次集計を一括同期
+                    </button>
+
+                    <button onclick="exportMonthlyReportCSV()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-1.5">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> 月次残業報告用CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary KPI Dashboard -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                    <div>
+                        <div class="text-xs font-semibold text-slate-500">対象人数</div>
+                        <div id="kpi-monthly-count" class="text-2xl font-black text-slate-800 mt-1">0 名</div>
+                    </div>
+                    <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                        <i data-lucide="users" class="w-6 h-6"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                    <div>
+                        <div class="text-xs font-semibold text-slate-500">月間総労働時間</div>
+                        <div id="kpi-monthly-total-work" class="text-2xl font-black text-slate-800 mt-1">0.0 時間</div>
+                    </div>
+                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                        <i data-lucide="clock" class="w-6 h-6"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                    <div>
+                        <div class="text-xs font-semibold text-amber-600 font-bold">月間総残業時間</div>
+                        <div id="kpi-monthly-total-overtime" class="text-2xl font-black text-amber-600 mt-1">0 時間 0 分</div>
+                    </div>
+                    <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                        <i data-lucide="alert-circle" class="w-6 h-6"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">従業員別・月間残業集計一覧</span>
+                    <span id="monthly-report-period-text" class="text-xs font-mono font-medium text-slate-500">----年--月</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-100 text-slate-700 uppercase font-bold text-xs border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3.5">従業員ID</th>
+                                <th class="px-4 py-3.5">氏名</th>
+                                <th class="px-4 py-3.5">役職</th>
+                                <th class="px-4 py-3.5 text-center">出勤日数</th>
+                                <th class="px-4 py-3.5 text-right">総労働時間</th>
+                                <th class="px-4 py-3.5 text-right text-amber-700">総残業時間</th>
+                                <th class="px-4 py-3.5 text-center">アラート・状態</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthly-report-table-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: EMPLOYEES & QR GENERATOR (従業員・QR発行) -->
+        <div id="tab-employees" class="tab-content hidden space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800">従業員名簿 & QRカード発行</h2>
+                    <p class="text-xs text-slate-500">個人のQRコードを発行し印刷用カードを準備できます。</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="openBulkImportModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> 一括登録
+                    </button>
+                    <button onclick="openEmployeeModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i> 新規登録
+                    </button>
+                </div>
+            </div>
+
+            <div id="employees-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+        </div>
+
+        <!-- TAB 5: SETTINGS & GOOGLE SHEETS INTEGRATION -->
+        <div id="tab-settings" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-7 space-y-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+                        <h2 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
+                            <i data-lucide="sliders-horizontal" class="w-5 h-5 text-indigo-600"></i> 基本システム設定
+                        </h2>
+
+                        <div class="space-y-3">
+                            <h3 class="text-sm font-semibold text-slate-700">音声・通知設定</h3>
+                            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <div>
+                                    <div class="text-sm font-medium text-slate-800">打刻サウンド効果音</div>
+                                    <div class="text-xs text-slate-500">スキャン成功時にビープ音を鳴らします</div>
+                                </div>
+                                <input type="checkbox" id="setting-sound" checked onchange="saveSettings()" class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer">
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <h3 class="text-sm font-semibold text-slate-700">定時時間設定（残業計算用）</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">規定始業時刻</label>
+                                    <input type="time" id="setting-work-start" value="08:10" onchange="saveSettings()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">規定終業時刻（これ以降が残業）</label>
+                                    <input type="time" id="setting-work-end" value="16:40" onchange="saveSettings()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-medium text-slate-800">データ初期化</div>
+                                <div class="text-xs text-slate-500">全打刻履歴や従業員データを完全に消去します</div>
+                            </div>
+                            <button onclick="confirmResetData()" class="px-3 py-1.5 border border-rose-300 text-rose-600 hover:bg-rose-50 text-xs font-semibold rounded-xl transition">
+                                初期状態に戻す
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-5 space-y-4">
+                    <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 p-6 space-y-4">
+                        <div class="flex items-center space-x-2 text-emerald-700">
+                            <i data-lucide="cloud" class="w-6 h-6"></i>
+                            <h3 class="text-base font-bold text-slate-800">Googleスプレッドシート連携</h3>
+                        </div>
+
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Google Apps Script (GAS) のウェブアプリURLを設定すると、打刻時にGoogleスプレッドシートへリアルタイムで自動記録されます。
+                        </p>
+
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold text-slate-700">GAS Web App URL</label>
+                            <input type="url" id="setting-webhook-url" oninput="saveSettings()" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+
+                        <div class="mt-4 pt-4 border-t border-slate-100 space-y-2">
+                            <button onclick="toggleGasGuide()" class="w-full flex items-center justify-between text-left text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 p-2.5 rounded-xl border border-indigo-100">
+                                <span class="flex items-center gap-1.5"><i data-lucide="help-circle" class="w-4 h-4"></i> Google Apps Script (GAS) の設定コード</span>
+                                <i data-lucide="chevron-down" id="gas-guide-icon" class="w-4 h-4"></i>
+                            </button>
+
+                            <div id="gas-guide-content" class="hidden text-xs text-slate-600 space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200 font-sans">
+                                <pre class="bg-slate-800 text-slate-100 p-2.5 rounded-lg text-[10px] my-1 font-mono overflow-x-auto select-all">
+function doPost(e) {
+  try {
+    var contents = JSON.parse(e.postData.contents);
+    var action = contents.action || 'log';
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    if (action === 'monthly_sync') {
+      var sheetName = contents.month + " 月次集計";
+      var sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
+      sheet.clearContents();
+      sheet.appendRow(["従業員ID", "氏名", "役職", "出勤日数", "総労働時間(時間)", "総残業時間(時間分)", "総残業時間(分)", "状態"]);
+      var rows = contents.data || [];
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        sheet.appendRow([r.empId, r.name, r.role, r.daysWorked, r.totalWorkHours, r.overtimeFormatted, r.overtimeMinutes, r.status]);
+      }
+      return ContentService.createTextOutput(JSON.stringify({status:"success"})).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var sheet = ss.getSheetByName("打刻履歴") || ss.insertSheet("打刻履歴");
+    if (sheet.getLastRow() === 0) sheet.appendRow(["日時", "従業員ID", "氏名", "役職", "打刻種別", "入力方法"]);
+    sheet.appendRow([contents.timestamp || new Date().toLocaleString("ja-JP"), contents.empId||"", contents.name||"", contents.role||"", contents.type==="IN"?"出勤":"退勤", contents.method||"QR"]);
+    return ContentService.createTextOutput(JSON.stringify({status:"success"})).setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({status:"error", message:err.toString()})).setMimeType(ContentService.MimeType.JSON);
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODALS CONTAINER -->
+    <!-- Modal: Manual Entry / 打ち忘れ入力 -->
+    <div id="modal-manual-entry" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i data-lucide="edit-3" class="w-5 h-5 text-indigo-600"></i> 手動打刻入力
+                </h3>
+                <button onclick="closeModal('modal-manual-entry')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleManualEntrySubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">対象従業員</label>
+                    <select id="manual-employee-id" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">打刻日</label>
+                        <input type="date" id="manual-date" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">打刻時刻</label>
+                        <input type="time" id="manual-time" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">種別</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center justify-center p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-100">
+                            <input type="radio" name="manual-type" value="IN" checked class="mr-2 text-indigo-600"> 出勤
+                        </label>
+                        <label class="flex items-center justify-center p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-100">
+                            <input type="radio" name="manual-type" value="OUT" class="mr-2 text-indigo-600"> 退勤
+                        </label>
+                    </div>
+                </div>
+                <div class="pt-2 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('modal-manual-entry')" class="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-200">キャンセル</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 shadow-sm">登録する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Employee Add / Edit -->
+    <div id="modal-employee-edit" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 id="modal-employee-title" class="font-bold text-slate-800 text-base">従業員登録</h3>
+                <button onclick="closeModal('modal-employee-edit')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleEmployeeSubmit(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="emp-edit-original-id">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">従業員ID (例: EMP001)</label>
+                    <input type="text" id="emp-edit-id" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">氏名</label>
+                    <input type="text" id="emp-edit-name" required placeholder="例: 山田 太郎" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">役職 / 部署</label>
+                    <input type="text" id="emp-edit-role" placeholder="例: 一般社員 / 開発部" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                </div>
+                <div class="pt-2 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('modal-employee-edit')" class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl">キャンセル</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl shadow-sm">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: QR Display Card -->
+    <div id="modal-qr-view" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-xs w-full p-6 text-center space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <span class="text-xs font-bold text-slate-500">QR勤怠カード</span>
+                <button onclick="closeModal('modal-qr-view')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div>
+                <div id="qr-card-role" class="text-xs text-indigo-600 font-semibold">役職名</div>
+                <div id="qr-card-name" class="text-xl font-black text-slate-800">氏名</div>
+                <div id="qr-card-id" class="text-xs font-mono text-slate-400 mt-0.5">ID: EMP000</div>
+            </div>
+            <div class="flex justify-center p-3 bg-white border-2 border-slate-100 rounded-2xl shadow-inner">
+                <div id="qr-code-canvas"></div>
+            </div>
+            <button onclick="window.print()" class="w-full py-2 bg-slate-800 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 no-print">
+                <i data-lucide="printer" class="w-4 h-4"></i> このカードを印刷
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal: Bulk CSV Import -->
+    <div id="modal-bulk-import" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-600"></i> 従業員一括CSV登録
+                </h3>
+                <button onclick="closeModal('modal-bulk-import')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <p class="text-xs text-slate-500 leading-relaxed">
+                カンマ区切り（従業員ID, 氏名, 役職）で1行ずつ入力または貼り付けしてください。
+            </p>
+            <textarea id="bulk-csv-input" rows="6" placeholder="EMP001,山田太郎,開発部&#10;EMP002,佐藤花子,営業部" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+            <div class="flex justify-end space-x-2">
+                <button onclick="closeModal('modal-bulk-import')" class="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl">キャンセル</button>
+                <button onclick="executeBulkImport()" class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-sm">一括登録実行</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN JAVASCRIPT LOGIC -->
+    <script>
+        // GLOBAL APPLICATION STATE (Lightweight version)
+        let appData = {
+            employees: [],
+            logs: [],
+            settings: {
+                sound: true,
+                workStart: "08:10",
+                workEnd: "16:40",
+                webhookUrl: ""
+            }
+        };
+
+        let currentPunchMode = 'AUTO';
+        let html5QrcodeScanner = null;
+        let isCameraRunning = false;
+        let selectedCameraId = null;
+        let audioCtx = null;
+
+        // INITIALIZATION ON WINDOW LOAD
+        window.addEventListener('DOMContentLoaded', () => {
+            loadDataFromStorage();
+            initLucideIcons();
+            startLiveClock();
+            checkHttpsContext();
+            
+            // Set current month filter
+            const now = new Date();
+            const yearMonth = now.toISOString().slice(0, 7);
+            const dateStr = now.toISOString().slice(0, 10);
+
+            document.getElementById('monthly-select-month').value = yearMonth;
+            document.getElementById('filter-date').value = dateStr;
+
+            renderAll();
+            initCameraScanner();
+        });
+
+        // LOCAL STORAGE FUNCTIONS
+        function loadDataFromStorage() {
+            try {
+                const stored = localStorage.getItem('qr_attendance_data');
+                if (stored) {
+                    appData = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error('Storage load error', e);
+            }
+        }
+
+        function saveDataToStorage() {
+            try {
+                localStorage.setItem('qr_attendance_data', JSON.stringify(appData));
+            } catch (e) {
+                console.error('Storage save error', e);
+            }
+        }
+
+        function confirmResetData() {
+            if (confirm('全ての従業員名簿および打刻履歴データを削除して初期化しますか？')) {
+                appData = {
+                    employees: [],
+                    logs: [],
+                    settings: {
+                        sound: true,
+                        workStart: "08:10",
+                        workEnd: "16:40",
+                        webhookUrl: ""
+                    }
+                };
+                saveDataToStorage();
+                renderAll();
+                alert('データを初期化しました。');
+            }
+        }
+
+        // NAVIGATION TAB SWITCHING
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-700', 'text-white');
+                btn.classList.add('text-indigo-200');
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-indigo-700', 'text-white');
+                activeBtn.classList.remove('text-indigo-200');
+            }
+
+            if (tabId === 'kiosk' && !isCameraRunning) {
+                startCamera();
+            } else if (tabId !== 'kiosk' && isCameraRunning) {
+                stopCamera();
+            }
+
+            if (tabId === 'monthly') {
+                renderMonthlyOvertimeReport();
+            }
+
+            initLucideIcons();
+        }
+
+        // LIVE CLOCK & DATE UPDATER
+        function startLiveClock() {
+            const update = () => {
+                const now = new Date();
+                const timeStr = now.toTimeString().split(' ')[0];
+                const days = ['日', '月', '火', '水', '木', '金', '土'];
+                const dateStr = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日(${days[now.getDay()]})`;
+
+                document.getElementById('nav-clock').textContent = timeStr;
+                document.getElementById('kiosk-clock').textContent = timeStr;
+                document.getElementById('kiosk-date').textContent = dateStr;
+            };
+            update();
+            setInterval(update, 1000);
+        }
+
+        // PUNCH MODE TOGGLE
+        function setPunchMode(mode) {
+            currentPunchMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white', 'font-bold');
+                btn.classList.add('text-slate-600');
+            });
+
+            const activeBtn = document.getElementById(`mode-${mode}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-indigo-600', 'text-white', 'font-bold');
+                activeBtn.classList.remove('text-slate-600');
+            }
+
+            const desc = document.getElementById('mode-description');
+            if (mode === 'AUTO') desc.textContent = '※ 本日の1回目は出勤、2回目は退勤として自動記録します';
+            else if (mode === 'IN') desc.textContent = '※ 強制「出勤」モードです';
+            else if (mode === 'OUT') desc.textContent = '※ 強制「退勤」モードです';
+        }
+
+        // CHECK HTTPS FOR CAMERA ACCESS
+        function checkHttpsContext() {
+            const isSecure = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            if (!isSecure) {
+                document.getElementById('https-warning').classList.remove('hidden');
+            }
+        }
+
+        // CAMERA SCANNER INITIALIZATION
+        function initCameraScanner() {
+            Html5Qrcode.getCameras().then(devices => {
+                const select = document.getElementById('camera-select');
+                select.innerHTML = '';
+                if (devices && devices.length > 0) {
+                    devices.forEach((dev, idx) => {
+                        const opt = document.createElement('option');
+                        opt.value = dev.id;
+                        opt.textContent = dev.label || `カメラ ${idx + 1}`;
+                        select.appendChild(opt);
+                    });
+                    selectedCameraId = devices[0].id;
+                    startCamera();
+                } else {
+                    select.innerHTML = '<option value="">カメラが見つかりません</option>';
+                }
+            }).catch(err => {
+                console.warn('Cameras lookup failed', err);
+            });
+        }
+
+        function startCamera() {
+            if (isCameraRunning) return;
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+
+            const cameraId = selectedCameraId || { facingMode: "environment" };
+            html5QrcodeScanner.start(
+                cameraId,
+                config,
+                onQrCodeScanned,
+                (errorMessage) => {}
+            ).then(() => {
+                isCameraRunning = true;
+                document.getElementById('camera-status-text').textContent = 'カメラON';
+            }).catch(err => {
+                console.error("Camera start failed", err);
+                isCameraRunning = false;
+                document.getElementById('camera-status-text').textContent = 'カメラOFF';
+            });
+        }
+
+        function stopCamera() {
+            if (html5QrcodeScanner && isCameraRunning) {
+                html5QrcodeScanner.stop().then(() => {
+                    isCameraRunning = false;
+                    document.getElementById('camera-status-text').textContent = 'カメラOFF';
+                }).catch(err => console.error(err));
+            }
+        }
+
+        function toggleCamera() {
+            if (isCameraRunning) stopCamera();
+            else startCamera();
+        }
+
+        function switchCameraDevice(deviceId) {
+            selectedCameraId = deviceId;
+            if (isCameraRunning) {
+                stopCamera();
+                setTimeout(startCamera, 400);
+            }
+        }
+
+        // QR SCAN CALLBACK
+        let lastScannedCode = null;
+        let lastScannedTime = 0;
+
+        function onQrCodeScanned(decodedText) {
+            const now = Date.now();
+            if (decodedText === lastScannedCode && (now - lastScannedTime) < 3000) {
+                return; // Prevent duplicate scan within 3 sec
+            }
+
+            lastScannedCode = decodedText;
+            lastScannedTime = now;
+
+            processPunch(decodedText, 'QR');
+        }
+
+        // CORE PUNCH PROCESSING LOGIC
+        function processPunch(empId, method = 'QR') {
+            const employee = appData.employees.find(e => e.id === empId);
+            if (!employee) {
+                showToast('未登録のQRコードです', 'ERR', empId);
+                playBeep(false);
+                return;
+            }
+
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 10);
+            const timeStr = now.toTimeString().split(' ')[0];
+            const timestampStr = `${dateStr} ${timeStr}`;
+
+            // Determine punch type (IN / OUT)
+            let punchType = currentPunchMode;
+            if (punchType === 'AUTO') {
+                const todayLogs = appData.logs.filter(l => l.empId === empId && l.timestamp.startsWith(dateStr));
+                const hasInToday = todayLogs.some(l => l.type === 'IN');
+                punchType = hasInToday ? 'OUT' : 'IN';
+            }
+
+            const logEntry = {
+                id: 'log_' + Date.now(),
+                empId: employee.id,
+                name: employee.name,
+                role: employee.role,
+                type: punchType,
+                method: method,
+                timestamp: timestampStr
+            };
+
+            appData.logs.unshift(logEntry);
+            saveDataToStorage();
+
+            // Webhook Sync if set
+            sendWebhookLog(logEntry);
+
+            // Audio feedback
+            playBeep(true);
+
+            // UI Feedback
+            showToast(`${punchType === 'IN' ? '出勤' : '退勤'}完了`, punchType, `${employee.name} 様`);
+            renderAll();
+        }
+
+        // SOUND FEEDBACK
+        function playBeep(success = true) {
+            if (!appData.settings.sound) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(success ? 880 : 300, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + (success ? 0.15 : 0.3));
+            } catch(e) {}
+        }
+
+        // TOAST FEEDBACK
+        function showToast(title, type, nameText) {
+            const feedback = document.getElementById('scan-feedback');
+            const fType = document.getElementById('feedback-type');
+            const fName = document.getElementById('feedback-name');
+            const fTime = document.getElementById('feedback-time');
+
+            fType.textContent = title;
+            fName.textContent = nameText;
+            fTime.textContent = new Date().toTimeString().split(' ')[0] + ' 打刻';
+
+            if (type === 'IN') {
+                feedback.className = "absolute inset-x-4 bottom-4 bg-emerald-600 text-white p-4 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-0 opacity-100 transition-all duration-300 pointer-events-none z-20";
+            } else if (type === 'OUT') {
+                feedback.className = "absolute inset-x-4 bottom-4 bg-amber-600 text-white p-4 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-0 opacity-100 transition-all duration-300 pointer-events-none z-20";
+            } else {
+                feedback.className = "absolute inset-x-4 bottom-4 bg-rose-600 text-white p-4 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-0 opacity-100 transition-all duration-300 pointer-events-none z-20";
+            }
+
+            setTimeout(() => {
+                feedback.classList.add('translate-y-32', 'opacity-0');
+            }, 3000);
+        }
+
+        // RENDER UI STATE
+        function renderAll() {
+            renderTodayStatsAndFeed();
+            renderLogsTable();
+            renderEmployeeGrid();
+            renderRoleOptions();
+            initLucideIcons();
+        }
+
+        function renderTodayStatsAndFeed() {
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const todayLogs = appData.logs.filter(l => l.timestamp.startsWith(todayStr));
+
+            const inSet = new Set(todayLogs.filter(l => l.type === 'IN').map(l => l.empId));
+            const outSet = new Set(todayLogs.filter(l => l.type === 'OUT').map(l => l.empId));
+
+            document.getElementById('stat-today-in').textContent = `${inSet.size}名`;
+            document.getElementById('stat-today-out').textContent = `${outSet.size}名`;
+
+            const listEl = document.getElementById('recent-logs-list');
+            if (todayLogs.length === 0) {
+                listEl.innerHTML = '<div class="py-8 text-center text-slate-400 text-sm">本日の打刻データはまだありません</div>';
+                return;
+            }
+
+            listEl.innerHTML = todayLogs.slice(0, 10).map(log => `
+                <div class="py-2.5 flex items-center justify-between text-xs">
+                    <div class="flex items-center space-x-2.5">
+                        <span class="px-2 py-0.5 rounded-md font-bold ${log.type === 'IN' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                            ${log.type === 'IN' ? '出勤' : '退勤'}
+                        </span>
+                        <div>
+                            <div class="font-bold text-slate-800">${escapeHtml(log.name)}</div>
+                            <div class="text-[10px] text-slate-400">${escapeHtml(log.role)} (${escapeHtml(log.empId)})</div>
+                        </div>
+                    </div>
+                    <div class="text-right font-mono text-slate-500">
+                        ${log.timestamp.split(' ')[1]}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderLogsTable() {
+            const dateVal = document.getElementById('filter-date').value;
+            const roleVal = document.getElementById('filter-role').value;
+            const keyVal = document.getElementById('filter-keyword').value.toLowerCase().trim();
+
+            let filtered = appData.logs.filter(l => {
+                if (dateVal && !l.timestamp.startsWith(dateVal)) return false;
+                if (roleVal !== 'ALL' && l.role !== roleVal) return false;
+                if (keyVal && !l.name.toLowerCase().includes(keyVal) && !l.empId.toLowerCase().includes(keyVal)) return false;
+                return true;
+            });
+
+            const tbody = document.getElementById('logs-table-body');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-400">該当する打刻履歴はありません</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(log => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-3 font-mono text-xs text-slate-700">${log.timestamp}</td>
+                    <td class="px-4 py-3 font-mono text-xs font-bold text-slate-600">${escapeHtml(log.empId)}</td>
+                    <td class="px-4 py-3 font-semibold text-slate-800">${escapeHtml(log.name)}</td>
+                    <td class="px-4 py-3 text-xs text-slate-500">${escapeHtml(log.role)}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-bold ${log.type === 'IN' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                            ${log.type === 'IN' ? '出勤' : '退勤'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-xs text-slate-400">${log.method || 'QR'}</td>
+                    <td class="px-4 py-3 text-right">
+                        <button onclick="deleteLog('${log.id}')" class="text-rose-500 hover:text-rose-700 text-xs font-medium">削除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteLog(logId) {
+            if (confirm('この打刻履歴を削除しますか？')) {
+                appData.logs = appData.logs.filter(l => l.id !== logId);
+                saveDataToStorage();
+                renderAll();
+            }
+        }
+
+        // MONTHLY OVERTIME REPORT CALCULATION
+        function renderMonthlyOvertimeReport() {
+            const targetMonth = document.getElementById('monthly-select-month').value; // YYYY-MM
+            if (!targetMonth) return;
+
+            document.getElementById('monthly-report-period-text').textContent = `${targetMonth} 集計`;
+
+            const workStartStr = appData.settings.workStart || "08:10";
+            const workEndStr = appData.settings.workEnd || "16:40";
+
+            const workEndMinutes = timeStrToMinutes(workEndStr);
+
+            let totalWorkMinutesAll = 0;
+            let totalOvertimeMinutesAll = 0;
+
+            const reportRows = appData.employees.map(emp => {
+                const empLogs = appData.logs.filter(l => l.empId === emp.id && l.timestamp.startsWith(targetMonth));
+                
+                // Group by day
+                const daysMap = {};
+                empLogs.forEach(l => {
+                    const day = l.timestamp.split(' ')[0];
+                    if (!daysMap[day]) daysMap[day] = [];
+                    daysMap[day].push(l);
+                });
+
+                let daysWorked = 0;
+                let empWorkMinutes = 0;
+                let empOvertimeMinutes = 0;
+
+                Object.keys(daysMap).forEach(day => {
+                    const dayLogs = daysMap[day];
+                    const inLog = dayLogs.filter(l => l.type === 'IN').sort((a,b) => a.timestamp.localeCompare(b.timestamp))[0];
+                    const outLog = dayLogs.filter(l => l.type === 'OUT').sort((a,b) => b.timestamp.localeCompare(a.timestamp))[0];
+
+                    if (inLog && outLog) {
+                        daysWorked++;
+                        const inMin = timeStrToMinutes(inLog.timestamp.split(' ')[1]);
+                        const outMin = timeStrToMinutes(outLog.timestamp.split(' ')[1]);
+
+                        if (outMin > inMin) {
+                            const dailyWork = outMin - inMin;
+                            empWorkMinutes += dailyWork;
+
+                            // Overtime past regular end time
+                            if (outMin > workEndMinutes) {
+                                empOvertimeMinutes += (outMin - workEndMinutes);
+                            }
+                        }
+                    }
+                });
+
+                totalWorkMinutesAll += empWorkMinutes;
+                totalOvertimeMinutesAll += empOvertimeMinutes;
+
+                return {
+                    empId: emp.id,
+                    name: emp.name,
+                    role: emp.role,
+                    daysWorked: daysWorked,
+                    totalWorkHours: (empWorkMinutes / 60).toFixed(1),
+                    overtimeMinutes: empOvertimeMinutes,
+                    overtimeFormatted: formatMinutesToHours(empOvertimeMinutes),
+                    status: getOvertimeStatusBadge(empOvertimeMinutes)
+                };
+            });
+
+            // Update KPI
+            document.getElementById('kpi-monthly-count').textContent = `${reportRows.length} 名`;
+            document.getElementById('kpi-monthly-total-work').textContent = `${(totalWorkMinutesAll / 60).toFixed(1)} 時間`;
+            document.getElementById('kpi-monthly-total-overtime').textContent = formatMinutesToHours(totalOvertimeMinutesAll);
+
+            // Render Table
+            const tbody = document.getElementById('monthly-report-table-body');
+            if (reportRows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-400">登録されている従業員がいません</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = reportRows.map(r => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-4 py-3 font-mono text-xs font-bold text-slate-600">${escapeHtml(r.empId)}</td>
+                    <td class="px-4 py-3 font-semibold text-slate-800">${escapeHtml(r.name)}</td>
+                    <td class="px-4 py-3 text-xs text-slate-500">${escapeHtml(r.role)}</td>
+                    <td class="px-4 py-3 text-center font-semibold text-slate-700">${r.daysWorked} 日</td>
+                    <td class="px-4 py-3 text-right font-mono font-bold text-slate-800">${r.totalWorkHours} h</td>
+                    <td class="px-4 py-3 text-right font-mono font-bold ${r.overtimeMinutes > 2700 ? 'text-rose-600' : 'text-amber-600'}">${r.overtimeFormatted}</td>
+                    <td class="px-4 py-3 text-center">${r.status}</td>
+                </tr>
+            `).join('');
+        }
+
+        function getOvertimeStatusBadge(overtimeMinutes) {
+            const hours = overtimeMinutes / 60;
+            if (hours >= 80) return '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300">過重労働注意 (80h超)</span>';
+            if (hours >= 45) return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">残業多め (45h超)</span>';
+            return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">正常範囲</span>';
+        }
+
+        // EMPLOYEES GRID & QR GENERATION
+        function renderEmployeeGrid() {
+            const grid = document.getElementById('employees-grid');
+            if (appData.employees.length === 0) {
+                grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">登録されている従業員はいません。「新規登録」ボタンから追加してください。</div>';
+                return;
+            }
+
+            grid.innerHTML = appData.employees.map(emp => `
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between space-y-3 hover:shadow-md transition">
+                    <div>
+                        <div class="flex items-center justify-between text-xs text-indigo-600 font-bold mb-1">
+                            <span>${escapeHtml(emp.role)}</span>
+                            <span class="font-mono text-slate-400 text-[10px]">${escapeHtml(emp.id)}</span>
+                        </div>
+                        <h4 class="text-lg font-bold text-slate-800">${escapeHtml(emp.name)}</h4>
+                    </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                        <button onclick="openQrModal('${emp.id}')" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition flex items-center gap-1">
+                            <i data-lucide="qr-code" class="w-3.5 h-3.5"></i> QR表示
+                        </button>
+                        <div class="space-x-1">
+                            <button onclick="editEmployee('${emp.id}')" class="text-xs text-slate-500 hover:text-slate-800 font-medium">編集</button>
+                            <button onclick="deleteEmployee('${emp.id}')" class="text-xs text-rose-500 hover:text-rose-700 font-medium">削除</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openQrModal(empId) {
+            const emp = appData.employees.find(e => e.id === empId);
+            if (!emp) return;
+
+            document.getElementById('qr-card-role').textContent = emp.role;
+            document.getElementById('qr-card-name').textContent = emp.name;
+            document.getElementById('qr-card-id').textContent = `ID: ${emp.id}`;
+
+            const canvasContainer = document.getElementById('qr-code-canvas');
+            canvasContainer.innerHTML = '';
+            
+            new QRCode(canvasContainer, {
+                text: emp.id,
+                width: 160,
+                height: 160,
+                colorDark : "#0f172a",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+
+            openModal('modal-qr-view');
+        }
+
+        // MODAL HELPERS
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); initLucideIcons(); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function openManualEntryModal() {
+            const select = document.getElementById('manual-employee-id');
+            select.innerHTML = appData.employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${e.id})</option>`).join('');
+            document.getElementById('manual-date').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('manual-time').value = new Date().toTimeString().slice(0, 5);
+            openModal('modal-manual-entry');
+        }
+
+        function handleManualEntrySubmit(e) {
+            e.preventDefault();
+            const empId = document.getElementById('manual-employee-id').value;
+            const dateStr = document.getElementById('manual-date').value;
+            const timeStr = document.getElementById('manual-time').value;
+            const type = document.querySelector('input[name="manual-type"]:checked').value;
+
+            const emp = appData.employees.find(e => e.id === empId);
+            if (!emp) return;
+
+            const logEntry = {
+                id: 'log_' + Date.now(),
+                empId: emp.id,
+                name: emp.name,
+                role: emp.role,
+                type: type,
+                method: '手動入力',
+                timestamp: `${dateStr} ${timeStr}:00`
+            };
+
+            appData.logs.unshift(logEntry);
+            saveDataToStorage();
+            closeModal('modal-manual-entry');
+            renderAll();
+            alert('手動打刻を登録しました。');
+        }
+
+        function openEmployeeModal() {
+            document.getElementById('modal-employee-title').textContent = '従業員新規登録';
+            document.getElementById('emp-edit-original-id').value = '';
+            document.getElementById('emp-edit-id').value = '';
+            document.getElementById('emp-edit-name').value = '';
+            document.getElementById('emp-edit-role').value = '';
+            openModal('modal-employee-edit');
+        }
+
+        function editEmployee(empId) {
+            const emp = appData.employees.find(e => e.id === empId);
+            if (!emp) return;
+            document.getElementById('modal-employee-title').textContent = '従業員情報の編集';
+            document.getElementById('emp-edit-original-id').value = emp.id;
+            document.getElementById('emp-edit-id').value = emp.id;
+            document.getElementById('emp-edit-name').value = emp.name;
+            document.getElementById('emp-edit-role').value = emp.role;
+            openModal('modal-employee-edit');
+        }
+
+        function handleEmployeeSubmit(e) {
+            e.preventDefault();
+            const origId = document.getElementById('emp-edit-original-id').value;
+            const newId = document.getElementById('emp-edit-id').value.trim();
+            const name = document.getElementById('emp-edit-name').value.trim();
+            const role = document.getElementById('emp-edit-role').value.trim() || '一般';
+
+            if (origId) {
+                // Edit
+                const idx = appData.employees.findIndex(e => e.id === origId);
+                if (idx !== -1) {
+                    appData.employees[idx] = { id: newId, name, role };
+                }
+            } else {
+                // New
+                if (appData.employees.some(e => e.id === newId)) {
+                    alert('同じ従業員IDが既に存在します。');
+                    return;
+                }
+                appData.employees.push({ id: newId, name, role });
+            }
+
+            saveDataToStorage();
+            closeModal('modal-employee-edit');
+            renderAll();
+        }
+
+        function deleteEmployee(empId) {
+            if (confirm('この従業員を削除しますか？')) {
+                appData.employees = appData.employees.filter(e => e.id !== empId);
+                saveDataToStorage();
+                renderAll();
+            }
+        }
+
+        function openBulkImportModal() { openModal('modal-bulk-import'); }
+
+        function executeBulkImport() {
+            const text = document.getElementById('bulk-csv-input').value.trim();
+            if (!text) return;
+
+            const lines = text.split('\n');
+            let addedCount = 0;
+
+            lines.forEach(line => {
+                const parts = line.split(',').map(s => s.trim());
+                if (parts.length >= 2) {
+                    const id = parts[0];
+                    const name = parts[1];
+                    const role = parts[2] || '一般';
+
+                    if (!appData.employees.some(e => e.id === id)) {
+                        appData.employees.push({ id, name, role });
+                        addedCount++;
+                    }
+                }
+            });
+
+            saveDataToStorage();
+            closeModal('modal-bulk-import');
+            renderAll();
+            alert(`${addedCount} 名の従業員を一括追加しました。`);
+        }
+
+        // EXPORT & SYNC FUNCTIONS
+        function exportToCSV() {
+            if (appData.logs.length === 0) { alert('出力する打刻データがありません'); return; }
+            let csv = "\uFEFF日時,従業員ID,名前,役職,打刻種別,入力方法\n";
+            appData.logs.forEach(l => {
+                csv += `"${l.timestamp}","${l.empId}","${l.name}","${l.role}","${l.type === 'IN' ? '出勤' : '退勤'}","${l.method || 'QR'}"\n`;
+            });
+            downloadCSVFile(csv, `打刻履歴_${new Date().toISOString().slice(0,10)}.csv`);
+        }
+
+        function exportMonthlyReportCSV() {
+            const month = document.getElementById('monthly-select-month').value;
+            const workEndStr = appData.settings.workEnd || "16:40";
+            const workEndMin = timeStrToMinutes(workEndStr);
+
+            let csv = "\uFEFF従業員ID,氏名,役職,出勤日数,総労働時間(時間),総残業時間(時間分),総残業時間(分)\n";
+
+            appData.employees.forEach(emp => {
+                const empLogs = appData.logs.filter(l => l.empId === emp.id && l.timestamp.startsWith(month));
+                const daysMap = {};
+                empLogs.forEach(l => {
+                    const day = l.timestamp.split(' ')[0];
+                    if (!daysMap[day]) daysMap[day] = [];
+                    daysMap[day].push(l);
+                });
+
+                let daysWorked = 0, empWorkMinutes = 0, empOvertimeMinutes = 0;
+
+                Object.keys(daysMap).forEach(day => {
+                    const logs = daysMap[day];
+                    const inLog = logs.filter(l => l.type === 'IN').sort((a,b) => a.timestamp.localeCompare(b.timestamp))[0];
+                    const outLog = logs.filter(l => l.type === 'OUT').sort((a,b) => b.timestamp.localeCompare(a.timestamp))[0];
+
+                    if (inLog && outLog) {
+                        daysWorked++;
+                        const inMin = timeStrToMinutes(inLog.timestamp.split(' ')[1]);
+                        const outMin = timeStrToMinutes(outLog.timestamp.split(' ')[1]);
+                        if (outMin > inMin) {
+                            empWorkMinutes += (outMin - inMin);
+                            if (outMin > workEndMin) empOvertimeMinutes += (outMin - workEndMin);
+                        }
+                    }
+                });
+
+                csv += `"${emp.id}","${emp.name}","${emp.role}",${daysWorked},${(empWorkMinutes/60).toFixed(1)},"${formatMinutesToHours(empOvertimeMinutes)}",${empOvertimeMinutes}\n`;
+            });
+
+            downloadCSVFile(csv, `月次残業報告_${month}.csv`);
+        }
+
+        function downloadCSVFile(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        function sendWebhookLog(logEntry) {
+            const url = appData.settings.webhookUrl;
+            if (!url) return;
+            fetch(url, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(logEntry)
+            }).catch(e => console.error(e));
+        }
+
+        function syncMonthlyToGoogleSheet() {
+            const url = appData.settings.webhookUrl;
+            if (!url) { alert('連携設定で GAS Web App URL を登録してください。'); return; }
+
+            const month = document.getElementById('monthly-select-month').value;
+            const workEndMin = timeStrToMinutes(appData.settings.workEnd || "16:40");
+
+            const reportData = appData.employees.map(emp => {
+                const empLogs = appData.logs.filter(l => l.empId === emp.id && l.timestamp.startsWith(month));
+                const daysMap = {};
+                empLogs.forEach(l => {
+                    const day = l.timestamp.split(' ')[0];
+                    if (!daysMap[day]) daysMap[day] = [];
+                    daysMap[day].push(l);
+                });
+
+                let daysWorked = 0, empWorkMinutes = 0, empOvertimeMinutes = 0;
+                Object.keys(daysMap).forEach(day => {
+                    const logs = daysMap[day];
+                    const inLog = logs.filter(l => l.type === 'IN').sort((a,b) => a.timestamp.localeCompare(b.timestamp))[0];
+                    const outLog = logs.filter(l => l.type === 'OUT').sort((a,b) => b.timestamp.localeCompare(a.timestamp))[0];
+                    if (inLog && outLog) {
+                        daysWorked++;
+                        const inMin = timeStrToMinutes(inLog.timestamp.split(' ')[1]);
+                        const outMin = timeStrToMinutes(outLog.timestamp.split(' ')[1]);
+                        if (outMin > inMin) {
+                            empWorkMinutes += (outMin - inMin);
+                            if (outMin > workEndMin) empOvertimeMinutes += (outMin - workEndMin);
+                        }
+                    }
+                });
+
+                return {
+                    empId: emp.id,
+                    name: emp.name,
+                    role: emp.role,
+                    daysWorked: daysWorked,
+                    totalWorkHours: (empWorkMinutes / 60).toFixed(1),
+                    overtimeFormatted: formatMinutesToHours(empOvertimeMinutes),
+                    overtimeMinutes: empOvertimeMinutes,
+                    status: (empOvertimeMinutes / 60) >= 80 ? "過重労働注意" : ((empOvertimeMinutes / 60) >= 45 ? "残業多め" : "正常")
+                };
+            });
+
+            fetch(url, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'monthly_sync',
+                    month: month,
+                    data: reportData
+                })
+            }).then(() => {
+                alert('スプレッドシートへ月次集計送信コマンドを発行しました！');
+            }).catch(err => {
+                alert('送信エラーが発生しました。');
+            });
+        }
+
+        function saveSettings() {
+            appData.settings.sound = document.getElementById('setting-sound').checked;
+            appData.settings.workStart = document.getElementById('setting-work-start').value;
+            appData.settings.workEnd = document.getElementById('setting-work-end').value;
+            appData.settings.webhookUrl = document.getElementById('setting-webhook-url').value.trim();
+            saveDataToStorage();
+        }
+
+        // HELPER UTILITIES
+        function renderRoleOptions() {
+            const select = document.getElementById('filter-role');
+            const roles = Array.from(new Set(appData.employees.map(e => e.role)));
+            select.innerHTML = '<option value="ALL">全ての役職</option>' + roles.map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
+        }
+
+        function timeStrToMinutes(timeStr) {
+            if (!timeStr) return 0;
+            const parts = timeStr.split(':').map(Number);
+            return parts[0] * 60 + parts[1];
+        }
+
+        function formatMinutesToHours(mins) {
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            return `${h}時間 ${m}分`;
+        }
+
+        function toggleGasGuide() {
+            const content = document.getElementById('gas-guide-content');
+            content.classList.toggle('hidden');
+        }
+
+        function initLucideIcons() {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>
