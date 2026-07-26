@@ -350,11 +350,17 @@
             <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                 <div>
                     <h2 class="text-base font-bold text-slate-800">従業員名簿 & QRカード発行</h2>
-                    <p class="text-xs text-slate-500">個人のQRコードを発行し印刷用カードを準備できます。</p>
+                    <p class="text-xs text-slate-500">個人のQRコードを発行し印刷用カードを準備できます（端末間同期に対応）。</p>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="openBulkImportModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="exportEmployeesCSV()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 border border-slate-200">
+                        <i data-lucide="download" class="w-4 h-4 text-slate-600"></i> 名簿CSV出力
+                    </button>
+                    <button onclick="openBulkImportModal()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
                         <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> 一括登録
+                    </button>
+                    <button onclick="syncEmployeesFromSheet()" class="px-3 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-300 text-xs font-semibold rounded-xl transition flex items-center gap-1.5">
+                        <i data-lucide="cloud-download" class="w-4 h-4 text-sky-600"></i> GASから名簿同期
                     </button>
                     <button onclick="openEmployeeModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
                         <i data-lucide="user-plus" class="w-4 h-4"></i> 新規登録
@@ -429,7 +435,7 @@
 
                         <div class="mt-4 pt-4 border-t border-slate-100 space-y-2">
                             <button onclick="toggleGasGuide()" class="w-full flex items-center justify-between text-left text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 p-2.5 rounded-xl border border-indigo-100">
-                                <span class="flex items-center gap-1.5"><i data-lucide="help-circle" class="w-4 h-4"></i> Google Apps Script (GAS) の設定コード</span>
+                                <span class="flex items-center gap-1.5"><i data-lucide="help-circle" class="w-4 h-4"></i> Google Apps Script (GAS) の最新設定コード</span>
                                 <i data-lucide="chevron-down" id="gas-guide-icon" class="w-4 h-4"></i>
                             </button>
 
@@ -454,12 +460,42 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify({status:"success"})).setMimeType(ContentService.MimeType.JSON);
     }
 
+    if (action === 'sync_employees') {
+      var sheet = ss.getSheetByName("従業員名簿") || ss.insertSheet("従業員名簿");
+      sheet.clearContents();
+      sheet.appendRow(["従業員ID", "氏名", "役職"]);
+      var emps = contents.employees || [];
+      for (var j = 0; j < emps.length; j++) {
+        sheet.appendRow([emps[j].id, emps[j].name, emps[j].role]);
+      }
+      return ContentService.createTextOutput(JSON.stringify({status:"success"})).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var sheet = ss.getSheetByName("打刻履歴") || ss.insertSheet("打刻履歴");
     if (sheet.getLastRow() === 0) sheet.appendRow(["日時", "従業員ID", "氏名", "役職", "打刻種別", "入力方法"]);
     sheet.appendRow([contents.timestamp || new Date().toLocaleString("ja-JP"), contents.empId||"", contents.name||"", contents.role||"", contents.type==="IN"?"出勤":"退勤", contents.method||"QR"]);
     return ContentService.createTextOutput(JSON.stringify({status:"success"})).setMimeType(ContentService.MimeType.JSON);
   } catch(err) {
     return ContentService.createTextOutput(JSON.stringify({status:"error", message:err.toString()})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("従業員名簿");
+    var employees = [];
+    if (sheet && sheet.getLastRow() > 1) {
+      var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 3).getValues();
+      for (var i = 0; i < data.length; i++) {
+        if (data[i][0]) {
+          employees.push({ id: String(data[i][0]), name: String(data[i][1]), role: String(data[i][2]) });
+        }
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", employees: employees })).setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
   }
 }</pre>
                             </div>
@@ -587,7 +623,7 @@ function doPost(e) {
 
     <!-- MAIN JAVASCRIPT LOGIC -->
     <script>
-        // GLOBAL APPLICATION STATE (Lightweight version)
+        // GLOBAL APPLICATION STATE
         let appData = {
             employees: [],
             logs: [],
@@ -639,6 +675,7 @@ function doPost(e) {
         function saveDataToStorage() {
             try {
                 localStorage.setItem('qr_attendance_data', JSON.stringify(appData));
+                syncEmployeesToSheet(); // Auto backup roster if GAS configured
             } catch (e) {
                 console.error('Storage save error', e);
             }
@@ -815,11 +852,34 @@ function doPost(e) {
             processPunch(decodedText, 'QR');
         }
 
-        // CORE PUNCH PROCESSING LOGIC
-        function processPunch(empId, method = 'QR') {
-            const employee = appData.employees.find(e => e.id === empId);
+        // CORE PUNCH PROCESSING LOGIC (Includes embedded QR auto-register)
+        function processPunch(decodedText, method = 'QR') {
+            let employee = appData.employees.find(e => e.id === decodedText);
+
+            // If not found by ID, check if QR code carries embedded payload (e.g. "EMP001|山田太郎|開発部")
             if (!employee) {
-                showToast('未登録のQRコードです', 'ERR', empId);
+                if (decodedText.includes('|')) {
+                    const parts = decodedText.split('|');
+                    if (parts.length >= 2) {
+                        employee = { id: parts[0].trim(), name: parts[1].trim(), role: parts[2] ? parts[2].trim() : '一般' };
+                        // Auto-add to local DB
+                        appData.employees.push(employee);
+                        saveDataToStorage();
+                    }
+                } else {
+                    try {
+                        const parsed = JSON.parse(decodedText);
+                        if (parsed.id && parsed.name) {
+                            employee = { id: parsed.id, name: parsed.name, role: parsed.role || '一般' };
+                            appData.employees.push(employee);
+                            saveDataToStorage();
+                        }
+                    } catch(e) {}
+                }
+            }
+
+            if (!employee) {
+                showToast('未登録のQRコードです', 'ERR', decodedText);
                 playBeep(false);
                 return;
             }
@@ -832,7 +892,7 @@ function doPost(e) {
             // Determine punch type (IN / OUT)
             let punchType = currentPunchMode;
             if (punchType === 'AUTO') {
-                const todayLogs = appData.logs.filter(l => l.empId === empId && l.timestamp.startsWith(dateStr));
+                const todayLogs = appData.logs.filter(l => l.empId === employee.id && l.timestamp.startsWith(dateStr));
                 const hasInToday = todayLogs.some(l => l.type === 'IN');
                 punchType = hasInToday ? 'OUT' : 'IN';
             }
@@ -994,7 +1054,7 @@ function doPost(e) {
 
         // MONTHLY OVERTIME REPORT CALCULATION
         function renderMonthlyOvertimeReport() {
-            const targetMonth = document.getElementById('monthly-select-month').value; // YYYY-MM
+            const targetMonth = document.getElementById('monthly-select-month').value;
             if (!targetMonth) return;
 
             document.getElementById('monthly-report-period-text').textContent = `${targetMonth} 集計`;
@@ -1010,7 +1070,6 @@ function doPost(e) {
             const reportRows = appData.employees.map(emp => {
                 const empLogs = appData.logs.filter(l => l.empId === emp.id && l.timestamp.startsWith(targetMonth));
                 
-                // Group by day
                 const daysMap = {};
                 empLogs.forEach(l => {
                     const day = l.timestamp.split(' ')[0];
@@ -1036,7 +1095,6 @@ function doPost(e) {
                             const dailyWork = outMin - inMin;
                             empWorkMinutes += dailyWork;
 
-                            // Overtime past regular end time
                             if (outMin > workEndMinutes) {
                                 empOvertimeMinutes += (outMin - workEndMinutes);
                             }
@@ -1059,12 +1117,10 @@ function doPost(e) {
                 };
             });
 
-            // Update KPI
             document.getElementById('kpi-monthly-count').textContent = `${reportRows.length} 名`;
             document.getElementById('kpi-monthly-total-work').textContent = `${(totalWorkMinutesAll / 60).toFixed(1)} 時間`;
             document.getElementById('kpi-monthly-total-overtime').textContent = formatMinutesToHours(totalOvertimeMinutesAll);
 
-            // Render Table
             const tbody = document.getElementById('monthly-report-table-body');
             if (reportRows.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-400">登録されている従業員がいません</td></tr>';
@@ -1132,8 +1188,11 @@ function doPost(e) {
             const canvasContainer = document.getElementById('qr-code-canvas');
             canvasContainer.innerHTML = '';
             
+            // Payload embeds ID, name and role so scanning on ANY terminal automatically recognizes the person
+            const payload = `${emp.id}|${emp.name}|${emp.role}`;
+
             new QRCode(canvasContainer, {
-                text: emp.id,
+                text: payload,
                 width: 160,
                 height: 160,
                 colorDark : "#0f172a",
@@ -1211,13 +1270,11 @@ function doPost(e) {
             const role = document.getElementById('emp-edit-role').value.trim() || '一般';
 
             if (origId) {
-                // Edit
                 const idx = appData.employees.findIndex(e => e.id === origId);
                 if (idx !== -1) {
                     appData.employees[idx] = { id: newId, name, role };
                 }
             } else {
-                // New
                 if (appData.employees.some(e => e.id === newId)) {
                     alert('同じ従業員IDが既に存在します。');
                     return;
@@ -1265,6 +1322,15 @@ function doPost(e) {
             closeModal('modal-bulk-import');
             renderAll();
             alert(`${addedCount} 名の従業員を一括追加しました。`);
+        }
+
+        function exportEmployeesCSV() {
+            if (appData.employees.length === 0) { alert('登録されている従業員がいません'); return; }
+            let csv = "\uFEFF従業員ID,氏名,役職\n";
+            appData.employees.forEach(e => {
+                csv += `"${e.id}","${e.name}","${e.role}"\n`;
+            });
+            downloadCSVFile(csv, `従業員名簿_${new Date().toISOString().slice(0,10)}.csv`);
         }
 
         // EXPORT & SYNC FUNCTIONS
@@ -1334,6 +1400,47 @@ function doPost(e) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(logEntry)
             }).catch(e => console.error(e));
+        }
+
+        function syncEmployeesToSheet() {
+            const url = appData.settings.webhookUrl;
+            if (!url || appData.employees.length === 0) return;
+            fetch(url, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'sync_employees',
+                    employees: appData.employees
+                })
+            }).catch(e => console.error(e));
+        }
+
+        function syncEmployeesFromSheet() {
+            const url = appData.settings.webhookUrl;
+            if (!url) { alert('連携設定で GAS Web App URL を登録してください。'); return; }
+
+            fetch(url)
+                .then(res => res.json())
+                .then(res => {
+                    if (res.status === 'success' && res.employees) {
+                        let added = 0;
+                        res.employees.forEach(e => {
+                            if (!appData.employees.some(emp => emp.id === e.id)) {
+                                appData.employees.push(e);
+                                added++;
+                            }
+                        });
+                        saveDataToStorage();
+                        renderAll();
+                        alert(`Googleスプレッドシートから ${res.employees.length} 名の情報を読み込みました（新規追加: ${added} 名）。`);
+                    } else {
+                        alert('名簿の取得に失敗しました。GAS側で doGet 関数が正しく配置されているか確認してください。');
+                    }
+                })
+                .catch(err => {
+                    alert('名簿同期エラーが発生しました。GASのデプロイ設定（全員アクセス許可）をご確認ください。');
+                });
         }
 
         function syncMonthlyToGoogleSheet() {
