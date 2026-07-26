@@ -519,7 +519,7 @@ function doGet(e) {
             </div>
             <form onsubmit="handleManualEntrySubmit(event)" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">対象従業員</label>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">対象従業員 <span class="text-rose-500">*</span></label>
                     <select id="manual-employee-id" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></select>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -1164,10 +1164,15 @@ function doGet(e) {
                         </div>
                         <h4 class="text-lg font-bold text-slate-800">${escapeHtml(emp.name)}</h4>
                     </div>
-                    <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-                        <button onclick="openQrModal('${emp.id}')" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition flex items-center gap-1">
-                            <i data-lucide="qr-code" class="w-3.5 h-3.5"></i> QR表示
-                        </button>
+                    <div class="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 gap-1.5">
+                        <div class="flex items-center gap-1">
+                            <button onclick="openQrModal('${emp.id}')" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition flex items-center gap-1">
+                                <i data-lucide="qr-code" class="w-3.5 h-3.5"></i> QR
+                            </button>
+                            <button onclick="openManualEntryModal('${emp.id}')" class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-xl transition flex items-center gap-1">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> 手動打刻
+                            </button>
+                        </div>
                         <div class="space-x-1">
                             <button onclick="editEmployee('${emp.id}')" class="text-xs text-slate-500 hover:text-slate-800 font-medium">編集</button>
                             <button onclick="deleteEmployee('${emp.id}')" class="text-xs text-rose-500 hover:text-rose-700 font-medium">削除</button>
@@ -1207,9 +1212,20 @@ function doGet(e) {
         function openModal(id) { document.getElementById(id).classList.remove('hidden'); initLucideIcons(); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-        function openManualEntryModal() {
+        function openManualEntryModal(targetEmpId = null) {
             const select = document.getElementById('manual-employee-id');
-            select.innerHTML = appData.employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${e.id})</option>`).join('');
+            
+            let optionsHtml = '';
+            if (!targetEmpId) {
+                optionsHtml += '<option value="" disabled selected>-- 従業員を選択してください --</option>';
+            }
+            
+            optionsHtml += appData.employees.map(e => {
+                const isSelected = (e.id === targetEmpId) ? 'selected' : '';
+                return `<option value="${e.id}" ${isSelected}>${escapeHtml(e.name)} (${e.id}) - ${escapeHtml(e.role)}</option>`;
+            }).join('');
+
+            select.innerHTML = optionsHtml;
             document.getElementById('manual-date').value = new Date().toISOString().slice(0, 10);
             document.getElementById('manual-time').value = new Date().toTimeString().slice(0, 5);
             openModal('modal-manual-entry');
@@ -1218,6 +1234,12 @@ function doGet(e) {
         function handleManualEntrySubmit(e) {
             e.preventDefault();
             const empId = document.getElementById('manual-employee-id').value;
+            
+            if (!empId) {
+                alert('対象の従業員を選択してください。');
+                return;
+            }
+
             const dateStr = document.getElementById('manual-date').value;
             const timeStr = document.getElementById('manual-time').value;
             const type = document.querySelector('input[name="manual-type"]:checked').value;
@@ -1239,7 +1261,7 @@ function doGet(e) {
             saveDataToStorage();
             closeModal('modal-manual-entry');
             renderAll();
-            alert('手動打刻を登録しました。');
+            alert(`${emp.name} 様の打刻（${type === 'IN' ? '出勤' : '退勤'}）を手動登録しました。`);
         }
 
         function openEmployeeModal() {
