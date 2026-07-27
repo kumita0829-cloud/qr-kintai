@@ -13,7 +13,7 @@
     <!-- QRCode Generator Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
     
     <style>
         body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
@@ -21,15 +21,18 @@
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
         @media print {
             .no-print { display: none !important; }
-            body { background-color: white !important; }
+            body { background-color: white !important; font-size: 12pt; }
+            .print-only { display: block !important; }
+            .page-break { page-break-after: always; }
         }
+        .print-only { display: none; }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col antialiased">
 
-    <!-- Navigation Header -->
     <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-40 no-print">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
@@ -81,134 +84,122 @@
         </div>
     </header>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 no-print">
+
+        <!-- Storage Status Banner -->
+        <div class="mb-4 bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-900 flex items-center justify-between shadow-sm">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="shield-check" class="w-4 h-4 text-indigo-600 shrink-0"></i>
+                <span><strong>データ保持状態:</strong> 打刻・残業履歴はブラウザ内に自動的に永続保存されています（時間が経っても消去されません）。長期間運用時は「連携設定」でバックアップ保存を推奨します。</span>
+            </div>
+            <span id="log-count-badge" class="bg-indigo-200 text-indigo-800 font-bold px-2.5 py-0.5 rounded-full text-[11px] shrink-0">総打刻数: 0件</span>
+        </div>
 
         <!-- TAB 1: KIOSK (受付・打刻) -->
-        <div id="tab-kiosk" class="tab-content space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
-                <!-- Left Column: Scanner Window -->
-                <div class="lg:col-span-7 flex flex-col space-y-4">
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col items-center">
-                        <!-- Mode Selector Bar -->
-                        <div class="w-full flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                            <span class="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-                                <i data-lucide="sliders" class="w-4 h-4 text-indigo-600"></i> 打刻種別
-                            </span>
-                            <div class="flex bg-slate-100 p-1 rounded-xl gap-1 text-xs sm:text-sm font-medium">
-                                <button onclick="setPunchMode('AUTO')" id="mode-AUTO" class="mode-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white shadow-sm transition font-bold">自動判別</button>
-                                <button onclick="setPunchMode('IN')" id="mode-IN" class="mode-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">出勤</button>
-                                <button onclick="setPunchMode('OUT')" id="mode-OUT" class="mode-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">退勤</button>
-                            </div>
+        <div id="tab-kiosk" class="tab-content space-y-6 max-w-2xl mx-auto">
+            
+            <!-- Today Status Counter Cards -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-3">
+                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                        <i data-lucide="log-in" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 font-medium">本日出勤</div>
+                        <div id="stat-today-in" class="text-2xl font-bold text-slate-800">0名</div>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-3">
+                    <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                        <i data-lucide="log-out" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 font-medium">本日退勤済</div>
+                        <div id="stat-today-out" class="text-2xl font-bold text-slate-800">0名</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scanner Window Card -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col items-center">
+                <!-- Mode Selector Bar -->
+                <div class="w-full flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                    <span class="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                        <i data-lucide="sliders" class="w-4 h-4 text-indigo-600"></i> 打刻種別
+                    </span>
+                    <div class="flex bg-slate-100 p-1 rounded-xl gap-1 text-xs sm:text-sm font-medium">
+                        <button onclick="setPunchMode('AUTO')" id="mode-AUTO" class="mode-btn px-3 py-1.5 rounded-lg bg-indigo-600 text-white shadow-sm transition font-bold">自動判別</button>
+                        <button onclick="setPunchMode('IN')" id="mode-IN" class="mode-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">出勤</button>
+                        <button onclick="setPunchMode('OUT')" id="mode-OUT" class="mode-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">退勤</button>
+                    </div>
+                </div>
+
+                <!-- Current Time Banner -->
+                <div class="text-center mb-4">
+                    <div id="kiosk-date" class="text-slate-500 text-sm font-medium">----年--月--日(--)</div>
+                    <div id="kiosk-clock" class="text-5xl font-black text-slate-800 tracking-tight font-mono my-1">00:00:00</div>
+                    <div id="mode-description" class="text-xs text-indigo-600 font-medium bg-indigo-50 px-3 py-1 rounded-full inline-block">
+                        ※ 本日の1回目は出勤、2回目は退勤として自動記録します
+                    </div>
+                </div>
+
+                <!-- Secure Context Warning -->
+                <div id="https-warning" class="hidden w-full mb-3 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-start gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                    <div><span class="font-bold">注意:</span> カメラは <strong>https://</strong> または <strong>localhost</strong> で動作します。</div>
+                </div>
+
+                <!-- Camera Scanner Container -->
+                <div class="relative w-full max-w-md aspect-square bg-slate-900 rounded-2xl overflow-hidden shadow-inner flex flex-col items-center justify-center border-4 border-slate-800">
+                    <div id="reader" class="w-full h-full object-cover flex items-center justify-center text-slate-400 text-xs text-center p-4"></div>
+                    
+                    <div id="scanner-overlay" class="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
+                        <div class="w-56 h-56 border-2 border-indigo-400/80 rounded-2xl relative flex items-center justify-center animate-pulse">
+                            <div class="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-indigo-500 rounded-tl-lg"></div>
+                            <div class="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-indigo-500 rounded-tr-lg"></div>
+                            <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-indigo-500 rounded-bl-lg"></div>
+                            <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-indigo-500 rounded-br-lg"></div>
                         </div>
+                        <p class="text-white/80 text-xs mt-4 bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                            個人用QRコードを枠内にかざしてください
+                        </p>
+                    </div>
 
-                        <!-- Current Time Banner -->
-                        <div class="text-center mb-4">
-                            <div id="kiosk-date" class="text-slate-500 text-sm font-medium">----年--月--日(--)</div>
-                            <div id="kiosk-clock" class="text-5xl font-black text-slate-800 tracking-tight font-mono my-1">00:00:00</div>
-                            <div id="mode-description" class="text-xs text-indigo-600 font-medium bg-indigo-50 px-3 py-1 rounded-full inline-block">
-                                ※ 本日の1回目は出勤、2回目は退勤として自動記録します
-                            </div>
+                    <!-- Success Toast Banner -->
+                    <div id="scan-feedback" class="absolute inset-x-4 bottom-4 bg-emerald-600 text-white p-4 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-32 opacity-0 transition-all duration-300 pointer-events-none z-20">
+                        <div class="p-2 bg-white/20 rounded-lg shrink-0">
+                            <i data-lucide="check-circle-2" class="w-8 h-8 text-white"></i>
                         </div>
-
-                        <!-- Secure Context Warning -->
-                        <div id="https-warning" class="hidden w-full mb-3 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-start gap-2">
-                            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
-                            <div><span class="font-bold">注意:</span> カメラは <strong>https://</strong> または <strong>localhost</strong> で動作します。</div>
-                        </div>
-
-                        <!-- Camera Scanner Container -->
-                        <div class="relative w-full max-w-md aspect-square bg-slate-900 rounded-2xl overflow-hidden shadow-inner flex flex-col items-center justify-center border-4 border-slate-800">
-                            <div id="reader" class="w-full h-full object-cover flex items-center justify-center text-slate-400 text-xs text-center p-4"></div>
-                            
-                            <div id="scanner-overlay" class="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
-                                <div class="w-56 h-56 border-2 border-indigo-400/80 rounded-2xl relative flex items-center justify-center animate-pulse">
-                                    <div class="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-indigo-500 rounded-tl-lg"></div>
-                                    <div class="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-indigo-500 rounded-tr-lg"></div>
-                                    <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-indigo-500 rounded-bl-lg"></div>
-                                    <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-indigo-500 rounded-br-lg"></div>
-                                </div>
-                                <p class="text-white/80 text-xs mt-4 bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-sm">
-                                    個人用QRコードを枠内にかざしてください
-                                </p>
-                            </div>
-
-                            <!-- Success Toast Banner -->
-                            <div id="scan-feedback" class="absolute inset-x-4 bottom-4 bg-emerald-600 text-white p-4 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-32 opacity-0 transition-all duration-300 pointer-events-none z-20">
-                                <div class="p-2 bg-white/20 rounded-lg shrink-0">
-                                    <i data-lucide="check-circle-2" class="w-8 h-8 text-white"></i>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <div id="feedback-type" class="text-xs font-bold uppercase tracking-wider text-emerald-100">出勤完了</div>
-                                    <div id="feedback-name" class="text-lg font-bold truncate">---</div>
-                                    <div id="feedback-time" class="text-xs text-emerald-100 font-mono">00:00:00 打刻完了</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Camera Controls -->
-                        <div class="w-full mt-4 space-y-3">
-                            <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                                <div class="flex items-center gap-2 flex-1 min-w-[200px]">
-                                    <i data-lucide="camera" class="w-4 h-4 text-indigo-600 shrink-0"></i>
-                                    <select id="camera-select" onchange="switchCameraDevice(this.value)" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
-                                        <option value="">カメラを検出中...</option>
-                                    </select>
-                                </div>
-                                <button onclick="toggleCamera()" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition shadow-sm shrink-0">
-                                    <i data-lucide="power" class="w-3.5 h-3.5"></i>
-                                    <span id="camera-status-text">カメラON/OFF</span>
-                                </button>
-                            </div>
-
-                            <div class="flex items-center justify-end gap-2 text-xs">
-                                <button onclick="openManualEntryModal()" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-medium transition border border-amber-200">
-                                    <i data-lucide="edit" class="w-4 h-4 text-amber-600"></i>
-                                    <span>打ち忘れ手動入力</span>
-                                </button>
-                            </div>
+                        <div class="flex-1 min-w-0">
+                            <div id="feedback-type" class="text-xs font-bold uppercase tracking-wider text-emerald-100">出勤完了</div>
+                            <div id="feedback-name" class="text-lg font-bold truncate">---</div>
+                            <div id="feedback-time" class="text-xs text-emerald-100 font-mono">00:00:00 打刻完了</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Column: Today Status & Feed -->
-                <div class="lg:col-span-5 flex flex-col space-y-4">
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-3">
-                            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-                                <i data-lucide="log-in" class="w-6 h-6"></i>
-                            </div>
-                            <div>
-                                <div class="text-xs text-slate-500 font-medium">本日出勤</div>
-                                <div id="stat-today-in" class="text-2xl font-bold text-slate-800">0名</div>
-                            </div>
+                <!-- Camera Controls -->
+                <div class="w-full mt-4 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                            <i data-lucide="camera" class="w-4 h-4 text-indigo-600 shrink-0"></i>
+                            <select id="camera-select" onchange="switchCameraDevice(this.value)" class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                                <option value="">カメラを検出中...</option>
+                            </select>
                         </div>
-                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-3">
-                            <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
-                                <i data-lucide="log-out" class="w-6 h-6"></i>
-                            </div>
-                            <div>
-                                <div class="text-xs text-slate-500 font-medium">本日退勤済</div>
-                                <div id="stat-today-out" class="text-2xl font-bold text-slate-800">0名</div>
-                            </div>
-                        </div>
+                        <button onclick="toggleCamera()" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition shadow-sm shrink-0">
+                            <i data-lucide="power" class="w-3.5 h-3.5"></i>
+                            <span id="camera-status-text">カメラON/OFF</span>
+                        </button>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex-1 flex flex-col">
-                        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                            <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm">
-                                <i data-lucide="activity" class="w-4 h-4 text-indigo-600"></i> リアルタイム打刻状況
-                            </h3>
-                            <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">本日</span>
-                        </div>
-
-                        <div id="recent-logs-list" class="flex-1 overflow-y-auto divide-y divide-slate-100 max-h-[380px] my-2">
-                            <div class="py-8 text-center text-slate-400 text-sm">本日の打刻データはまだありません</div>
-                        </div>
+                    <div class="flex items-center justify-end gap-2 text-xs">
+                        <button onclick="openManualEntryModal()" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-medium transition border border-amber-200">
+                            <i data-lucide="edit" class="w-4 h-4 text-amber-600"></i>
+                            <span>打ち忘れ手動入力</span>
+                        </button>
                     </div>
                 </div>
-
             </div>
         </div>
 
@@ -337,6 +328,7 @@
                                 <th class="px-4 py-3.5 text-right">総労働時間</th>
                                 <th class="px-4 py-3.5 text-right text-amber-700">総残業時間</th>
                                 <th class="px-4 py-3.5 text-center">アラート・状態</th>
+                                <th class="px-4 py-3.5 text-center">日別詳細</th>
                             </tr>
                         </thead>
                         <tbody id="monthly-report-table-body" class="divide-y divide-slate-100"></tbody>
@@ -353,6 +345,12 @@
                     <p class="text-xs text-slate-500">個人のQRコードを発行し印刷用カードを準備できます（端末間同期に対応）。</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="exportQrExcelCSV()" class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-xl transition flex items-center gap-1.5">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4 text-indigo-600"></i> QR画像付Excel/スプレッドシート出力
+                    </button>
+                    <button onclick="printAllQrCards()" class="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-semibold rounded-xl transition flex items-center gap-1.5">
+                        <i data-lucide="printer" class="w-4 h-4 text-purple-600"></i> QRカード一括印刷・PDF
+                    </button>
                     <button onclick="exportEmployeesCSV()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 border border-slate-200">
                         <i data-lucide="download" class="w-4 h-4 text-slate-600"></i> 名簿CSV出力
                     </button>
@@ -405,6 +403,23 @@
                             </div>
                         </div>
 
+                        <!-- Data Backup & Restore Section for 1-Year Operation -->
+                        <div class="pt-4 border-t border-slate-100 space-y-3">
+                            <h3 class="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                                <i data-lucide="database" class="w-4 h-4 text-indigo-600"></i> 長期運用用データバックアップ・復元
+                            </h3>
+                            <p class="text-xs text-slate-500">1年分の全打刻データ・名簿・設定をファイルとして保存・復元できます。</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="exportFullSystemBackup()" class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold rounded-xl transition flex items-center gap-1.5">
+                                    <i data-lucide="download-cloud" class="w-4 h-4"></i> バックアップ保存(JSON)
+                                </button>
+                                <label class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5">
+                                    <i data-lucide="upload-cloud" class="w-4 h-4"></i> バックアップ復元
+                                    <input type="file" id="backup-file-input" onchange="importFullSystemBackup(event)" accept=".json" class="hidden">
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
                             <div>
                                 <div class="text-sm font-medium text-slate-800">データ初期化</div>
@@ -419,212 +434,179 @@
 
                 <div class="lg:col-span-5 space-y-4">
                     <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 p-6 space-y-4">
-                        <div class="flex items-center space-x-2 text-emerald-700">
-                            <i data-lucide="cloud" class="w-6 h-6"></i>
-                            <h3 class="text-base font-bold text-slate-800">Googleスプレッドシート連携</h3>
-                        </div>
-
+                        <h2 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
+                            <i data-lucide="sheet" class="w-5 h-5 text-emerald-600"></i> Google スプレッドシート連携
+                        </h2>
                         <p class="text-xs text-slate-600 leading-relaxed">
-                            Google Apps Script (GAS) のウェブアプリURLを設定すると、打刻時にGoogleスプレッドシートへリアルタイムで自動記録されます。
+                            Google Apps Script (GAS) のウェブアプリURLを設定すると、打刻データや月次残業集計を自動的にスプレッドシートへリアルタイム同期できます。
                         </p>
 
-                        <div class="space-y-2">
-                            <label class="block text-xs font-bold text-slate-700">GAS Web App URL</label>
-                            <input type="url" id="setting-webhook-url" oninput="saveSettings()" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">GAS Webhook URL</label>
+                            <input type="url" id="setting-webhook-url" onchange="saveSettings()" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         </div>
 
-                        <div class="mt-4 pt-4 border-t border-slate-100 space-y-2">
-                            <button onclick="toggleGasGuide()" class="w-full flex items-center justify-between text-left text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 p-2.5 rounded-xl border border-indigo-100">
-                                <span class="flex items-center gap-1.5"><i data-lucide="help-circle" class="w-4 h-4"></i> Google Apps Script (GAS) の最新設定コード</span>
-                                <i data-lucide="chevron-down" id="gas-guide-icon" class="w-4 h-4"></i>
-                            </button>
-
-                            <div id="gas-guide-content" class="hidden text-xs text-slate-600 space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200 font-sans">
-                                <pre class="bg-slate-800 text-slate-100 p-2.5 rounded-lg text-[10px] my-1 font-mono overflow-x-auto select-all">
-function doPost(e) {
-  try {
-    var contents = JSON.parse(e.postData.contents);
-    var action = contents.action || 'log';
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-
-    if (action === 'monthly_sync') {
-      var sheetName = contents.month + " 月次集計";
-      var sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
-      sheet.clearContents();
-      sheet.appendRow(["従業員ID", "氏名", "役職", "出勤日数", "総労働時間(時間)", "総残業時間(時間分)", "総残業時間(分)", "状態"]);
-      var rows = contents.data || [];
-      for (var i = 0; i < rows.length; i++) {
-        var r = rows[i];
-        sheet.appendRow([r.empId, r.name, r.role, r.daysWorked, r.totalWorkHours, r.overtimeFormatted, r.overtimeMinutes, r.status]);
-      }
-      return ContentService.createTextOutput(JSON.stringify({status:"success"})).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    if (action === 'sync_employees') {
-      var sheet = ss.getSheetByName("従業員名簿") || ss.insertSheet("従業員名簿");
-      sheet.clearContents();
-      sheet.appendRow(["従業員ID", "氏名", "役職"]);
-      var emps = contents.employees || [];
-      for (var j = 0; j < emps.length; j++) {
-        sheet.appendRow([emps[j].id, emps[j].name, emps[j].role]);
-      }
-      return ContentService.createTextOutput(JSON.stringify({status:"success"})).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    var sheet = ss.getSheetByName("打刻履歴") || ss.insertSheet("打刻履歴");
-    if (sheet.getLastRow() === 0) sheet.appendRow(["日時", "従業員ID", "氏名", "役職", "打刻種別", "入力方法"]);
-    sheet.appendRow([contents.timestamp || new Date().toLocaleString("ja-JP"), contents.empId||"", contents.name||"", contents.role||"", contents.type==="IN"?"出勤":"退勤", contents.method||"QR"]);
-    return ContentService.createTextOutput(JSON.stringify({status:"success"})).setMimeType(ContentService.MimeType.JSON);
-  } catch(err) {
-    return ContentService.createTextOutput(JSON.stringify({status:"error", message:err.toString()})).setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-function doGet(e) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("従業員名簿");
-    var employees = [];
-    if (sheet && sheet.getLastRow() > 1) {
-      var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 3).getValues();
-      for (var i = 0; i < data.length; i++) {
-        if (data[i][0]) {
-          employees.push({ id: String(data[i][0]), name: String(data[i][1]), role: String(data[i][2]) });
-        }
-      }
-    }
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", employees: employees })).setMimeType(ContentService.MimeType.JSON);
-  } catch(err) {
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
-  }
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-2">
+                            <div class="font-bold text-slate-800">【GASコード例】</div>
+                            <pre class="bg-slate-900 text-emerald-400 p-3 rounded-lg overflow-x-auto font-mono text-[11px] leading-snug">function doPost(e) {
+  var data = JSON.parse(e.postData.contents);
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  sheet.appendRow([data.date, data.time, data.employeeId, data.name, data.role, data.type, data.method]);
+  return ContentService.createTextOutput("OK");
 }</pre>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
     </main>
 
-    <!-- MODALS CONTAINER -->
-    <!-- Modal: Manual Entry / 打ち忘れ入力 -->
-    <div id="modal-manual-entry" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+    <!-- MODAL: Manual Entry (打ち忘れ手動入力) -->
+    <div id="modal-manual-entry" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b pb-3">
                 <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
                     <i data-lucide="edit-3" class="w-5 h-5 text-indigo-600"></i> 手動打刻入力
                 </h3>
-                <button onclick="closeModal('modal-manual-entry')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <button onclick="closeManualEntryModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <form onsubmit="handleManualEntrySubmit(event)" class="space-y-4">
+            <div class="space-y-3 text-xs">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">対象従業員 <span class="text-rose-500">*</span></label>
-                    <select id="manual-employee-id" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></select>
+                    <label class="block font-bold text-slate-700 mb-1">従業員を選択</label>
+                    <select id="manual-employee-select" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium"></select>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">打刻日</label>
-                        <input type="date" id="manual-date" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                        <label class="block font-bold text-slate-700 mb-1">日付</label>
+                        <input type="date" id="manual-date" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">打刻時刻</label>
-                        <input type="time" id="manual-time" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                        <label class="block font-bold text-slate-700 mb-1">時刻</label>
+                        <input type="time" id="manual-time" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">種別</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <label class="flex items-center justify-center p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-100">
-                            <input type="radio" name="manual-type" value="IN" checked class="mr-2 text-indigo-600"> 出勤
-                        </label>
-                        <label class="flex items-center justify-center p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-100">
-                            <input type="radio" name="manual-type" value="OUT" class="mr-2 text-indigo-600"> 退勤
-                        </label>
-                    </div>
+                    <label class="block font-bold text-slate-700 mb-1">打刻種別</label>
+                    <select id="manual-type" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
+                        <option value="IN">出勤 (IN)</option>
+                        <option value="OUT">退勤 (OUT)</option>
+                    </select>
                 </div>
-                <div class="pt-2 flex justify-end space-x-2">
-                    <button type="button" onclick="closeModal('modal-manual-entry')" class="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl hover:bg-slate-200">キャンセル</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 shadow-sm">登録する</button>
-                </div>
-            </form>
+            </div>
+            <div class="flex items-center justify-end space-x-2 pt-3 border-t">
+                <button onclick="closeManualEntryModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">キャンセル</button>
+                <button onclick="saveManualEntry()" class="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm">登録保存</button>
+            </div>
         </div>
     </div>
 
-    <!-- Modal: Employee Add / Edit -->
-    <div id="modal-employee-edit" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 id="modal-employee-title" class="font-bold text-slate-800 text-base">従業員登録</h3>
-                <button onclick="closeModal('modal-employee-edit')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <!-- MODAL: Employee Add/Edit (従業員登録・編集) -->
+    <div id="modal-employee" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b pb-3">
+                <h3 id="employee-modal-title" class="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <i data-lucide="user-plus" class="w-5 h-5 text-indigo-600"></i> 従業員の追加
+                </h3>
+                <button onclick="closeEmployeeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <form onsubmit="handleEmployeeSubmit(event)" class="space-y-3 text-xs">
-                <input type="hidden" id="emp-edit-original-id">
+            <input type="hidden" id="emp-edit-original-id">
+            <div class="space-y-3 text-xs">
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">従業員ID (例: EMP001)</label>
-                    <input type="text" id="emp-edit-id" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono">
+                    <label class="block font-bold text-slate-700 mb-1">従業員ID (英数字)</label>
+                    <input type="text" id="emp-id" placeholder="EMP001" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono">
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">氏名</label>
-                    <input type="text" id="emp-edit-name" required placeholder="例: 山田 太郎" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                    <input type="text" id="emp-name" placeholder="山田 太郎" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">役職 / 部署</label>
-                    <input type="text" id="emp-edit-role" placeholder="例: 一般社員 / 開発部" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                    <label class="block font-bold text-slate-700 mb-1">部署 / 役職</label>
+                    <input type="text" id="emp-role" placeholder="開発部 / リーダー" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                 </div>
-                <div class="pt-2 flex justify-end space-x-2">
-                    <button type="button" onclick="closeModal('modal-employee-edit')" class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl">キャンセル</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl shadow-sm">保存</button>
-                </div>
-            </form>
+            </div>
+            <div class="flex items-center justify-end space-x-2 pt-3 border-t">
+                <button onclick="closeEmployeeModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">キャンセル</button>
+                <button onclick="saveEmployee()" class="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm">保存</button>
+            </div>
         </div>
     </div>
 
-    <!-- Modal: QR Display Card -->
-    <div id="modal-qr-view" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl max-w-xs w-full p-6 text-center space-y-4">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                <span class="text-xs font-bold text-slate-500">QR勤怠カード</span>
-                <button onclick="closeModal('modal-qr-view')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-            <div>
-                <div id="qr-card-role" class="text-xs text-indigo-600 font-semibold">役職名</div>
-                <div id="qr-card-name" class="text-xl font-black text-slate-800">氏名</div>
-                <div id="qr-card-id" class="text-xs font-mono text-slate-400 mt-0.5">ID: EMP000</div>
-            </div>
-            <div class="flex justify-center p-3 bg-white border-2 border-slate-100 rounded-2xl shadow-inner">
-                <div id="qr-code-canvas"></div>
-            </div>
-            <button onclick="window.print()" class="w-full py-2 bg-slate-800 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 no-print">
-                <i data-lucide="printer" class="w-4 h-4"></i> このカードを印刷
-            </button>
-        </div>
-    </div>
-
-    <!-- Modal: Bulk CSV Import -->
-    <div id="modal-bulk-import" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+    <!-- MODAL: Bulk Employee Import (名簿一括登録) -->
+    <div id="modal-bulk-import" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b pb-3">
                 <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
-                    <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-600"></i> 従業員一括CSV登録
+                    <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-600"></i> 従業員名簿の一括登録 (CSV/TSV)
                 </h3>
-                <button onclick="closeModal('modal-bulk-import')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <button onclick="closeBulkImportModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <p class="text-xs text-slate-500 leading-relaxed">
-                カンマ区切り（従業員ID, 氏名, 役職）で1行ずつ入力または貼り付けしてください。
-            </p>
-            <textarea id="bulk-csv-input" rows="6" placeholder="EMP001,山田太郎,開発部&#10;EMP002,佐藤花子,営業部" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
-            <div class="flex justify-end space-x-2">
-                <button onclick="closeModal('modal-bulk-import')" class="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl">キャンセル</button>
-                <button onclick="executeBulkImport()" class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-sm">一括登録実行</button>
+            <div class="space-y-2 text-xs">
+                <p class="text-slate-500">Excelやスプレッドシートからコピーした列（従業員ID, 氏名, 役職）を貼り付けてください：</p>
+                <textarea id="bulk-import-text" rows="6" placeholder="EMP001&#09;山田 太郎&#09;開発部&#10;EMP002&#09;佐藤 典子&#09;営業部" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"></textarea>
+            </div>
+            <div class="flex items-center justify-end space-x-2 pt-3 border-t">
+                <button onclick="closeBulkImportModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">キャンセル</button>
+                <button onclick="processBulkImport()" class="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm">一括取り込み実行</button>
             </div>
         </div>
     </div>
 
-    <!-- MAIN JAVASCRIPT LOGIC -->
+    <!-- MODAL: Individual Timecard Detail -->
+    <div id="modal-timecard" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between border-b pb-3 shrink-0">
+                <div>
+                    <h3 id="timecard-modal-title" class="font-bold text-slate-800 text-base flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-5 h-5 text-indigo-600"></i> 個人別月次タイムカード明細
+                    </h3>
+                    <p id="timecard-modal-subtitle" class="text-xs text-slate-500 mt-0.5">---</p>
+                </div>
+                <button onclick="closeTimecardModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div id="timecard-modal-body" class="overflow-y-auto flex-1 space-y-3 pr-1">
+                <table class="w-full text-left text-xs text-slate-600 border border-slate-200 rounded-xl overflow-hidden">
+                    <thead class="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+                        <tr>
+                            <th class="px-3 py-2.5">日付</th>
+                            <th class="px-3 py-2.5 text-center">出勤時刻</th>
+                            <th class="px-3 py-2.5 text-center">退勤時刻</th>
+                            <th class="px-3 py-2.5 text-right">実労働時間</th>
+                            <th class="px-3 py-2.5 text-right text-amber-700">残業時間</th>
+                        </tr>
+                    </thead>
+                    <tbody id="timecard-table-body" class="divide-y divide-slate-100 font-mono"></tbody>
+                </table>
+            </div>
+
+            <div class="flex items-center justify-end space-x-2 pt-3 border-t shrink-0">
+                <button onclick="exportSingleTimecardCSV()" class="px-4 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-sm flex items-center gap-1.5">
+                    <i data-lucide="download" class="w-4 h-4"></i> このタイムカードをCSV出力
+                </button>
+                <button onclick="closeTimecardModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Printable QR Container (Hidden except in Print mode) -->
+    <div id="print-qr-container" class="print-only p-8 bg-white grid grid-cols-2 gap-6"></div>
+
+    <!-- Custom Notification Toast -->
+    <div id="app-toast" class="fixed top-20 right-5 z-50 bg-slate-800 text-white px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 transform translate-y-[-100px] opacity-0 transition-all duration-300 pointer-events-none text-xs">
+        <i data-lucide="info" class="w-4 h-4 text-indigo-400 shrink-0"></i>
+        <span id="toast-message">メッセージ</span>
+    </div>
+
     <script>
-        // GLOBAL APPLICATION STATE
-        let appData = {
+        // Default Initial Employees Data
+        const DEFAULT_EMPLOYEES = [
+            { id: "EMP001", name: "山田 太郎", role: "開発部 / リーダー" },
+            { id: "EMP002", name: "佐藤 典子", role: "営業部 / アシスタント" },
+            { id: "EMP003", name: "高橋 健太", role: "総務部 / 主任" }
+        ];
+
+        // Global State Variable
+        let state = {
             employees: [],
             logs: [],
             settings: {
@@ -632,944 +614,1053 @@ function doGet(e) {
                 workStart: "08:10",
                 workEnd: "16:40",
                 webhookUrl: ""
-            }
+            },
+            punchMode: "AUTO",
+            scanner: null,
+            activeCameraId: null,
+            isScanningCooldown: false,
+            currentTimecardContext: null
         };
 
-        let currentPunchMode = 'AUTO';
-        let html5QrcodeScanner = null;
-        let isCameraRunning = false;
-        let selectedCameraId = null;
-        let audioCtx = null;
-
-        // INITIALIZATION ON WINDOW LOAD
-        window.addEventListener('DOMContentLoaded', () => {
-            loadDataFromStorage();
-            initLucideIcons();
-            startLiveClock();
-            checkHttpsContext();
-            
-            // Set current month filter
-            const now = new Date();
-            const yearMonth = now.toISOString().slice(0, 7);
-            const dateStr = now.toISOString().slice(0, 10);
-
-            document.getElementById('monthly-select-month').value = yearMonth;
-            document.getElementById('filter-date').value = dateStr;
-
-            renderAll();
+        document.addEventListener("DOMContentLoaded", function() {
+            loadState();
+            setupClock();
+            switchTab('kiosk');
             initCameraScanner();
+            renderLogsTable();
+            renderMonthlyOvertimeReport();
+            renderEmployeesGrid();
+            updateLogCountBadge();
+            updateTodayKioskStats();
+            
+            // Check HTTPS / Localhost context for camera
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                const warnEl = document.getElementById('https-warning');
+                if (warnEl) warnEl.classList.remove('hidden');
+            }
+            
+            // Re-render Lucide icons
+            if (window.lucide) lucide.createIcons();
         });
 
-        // LOCAL STORAGE FUNCTIONS
-        function loadDataFromStorage() {
+        // Load State from LocalStorage
+        function loadState() {
             try {
-                const stored = localStorage.getItem('qr_attendance_data');
-                if (stored) {
-                    appData = JSON.parse(stored);
+                const savedEmployees = localStorage.getItem('qr_attendance_employees');
+                const savedLogs = localStorage.getItem('qr_attendance_logs');
+                const savedSettings = localStorage.getItem('qr_attendance_settings');
+
+                if (savedEmployees) {
+                    state.employees = JSON.parse(savedEmployees);
+                } else {
+                    state.employees = [...DEFAULT_EMPLOYEES];
+                }
+
+                if (savedLogs) {
+                    state.logs = JSON.parse(savedLogs);
+                } else {
+                    state.logs = [];
+                }
+
+                if (savedSettings) {
+                    state.settings = Object.assign(state.settings, JSON.parse(savedSettings));
                 }
             } catch (e) {
-                console.error('Storage load error', e);
+                console.error("Failed to load state from localStorage:", e);
+                state.employees = [...DEFAULT_EMPLOYEES];
+                state.logs = [];
+            }
+
+            // Sync settings to inputs
+            document.getElementById('setting-sound').checked = state.settings.sound;
+            document.getElementById('setting-work-start').value = state.settings.workStart;
+            document.getElementById('setting-work-end').value = state.settings.workEnd;
+            document.getElementById('setting-webhook-url').value = state.settings.webhookUrl || '';
+        }
+
+        // Save State to LocalStorage
+        function saveState() {
+            localStorage.setItem('qr_attendance_employees', JSON.stringify(state.employees));
+            localStorage.setItem('qr_attendance_logs', JSON.stringify(state.logs));
+            localStorage.setItem('qr_attendance_settings', JSON.stringify(state.settings));
+            updateLogCountBadge();
+        }
+
+        function saveSettings() {
+            state.settings.sound = document.getElementById('setting-sound').checked;
+            state.settings.workStart = document.getElementById('setting-work-start').value || "08:10";
+            state.settings.workEnd = document.getElementById('setting-work-end').value || "16:40";
+            state.settings.webhookUrl = document.getElementById('setting-webhook-url').value.trim();
+            saveState();
+            renderMonthlyOvertimeReport();
+            showToast("設定を保存しました");
+        }
+
+        function updateLogCountBadge() {
+            const badge = document.getElementById('log-count-badge');
+            if (badge) {
+                badge.textContent = `総打刻数: ${state.logs.length}件`;
             }
         }
 
-        function saveDataToStorage() {
-            try {
-                localStorage.setItem('qr_attendance_data', JSON.stringify(appData));
-                syncEmployeesToSheet(); // Auto backup roster if GAS configured
-            } catch (e) {
-                console.error('Storage save error', e);
-            }
-        }
-
-        function confirmResetData() {
-            if (confirm('全ての従業員名簿および打刻履歴データを削除して初期化しますか？')) {
-                appData = {
-                    employees: [],
-                    logs: [],
-                    settings: {
-                        sound: true,
-                        workStart: "08:10",
-                        workEnd: "16:40",
-                        webhookUrl: ""
-                    }
-                };
-                saveDataToStorage();
-                renderAll();
-                alert('データを初期化しました。');
-            }
-        }
-
-        // NAVIGATION TAB SWITCHING
-        function switchTab(tabId) {
+        // Navigation Tab Switching
+        function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('bg-indigo-700', 'text-white');
                 btn.classList.add('text-indigo-200');
             });
 
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
-            if (activeBtn) {
-                activeBtn.classList.add('bg-indigo-700', 'text-white');
-                activeBtn.classList.remove('text-indigo-200');
+            const selectedTab = document.getElementById(`tab-${tabName}`);
+            const selectedBtn = document.getElementById(`tab-btn-${tabName}`);
+
+            if (selectedTab) selectedTab.classList.remove('hidden');
+            if (selectedBtn) {
+                selectedBtn.classList.add('bg-indigo-700', 'text-white');
+                selectedBtn.classList.remove('text-indigo-200');
             }
 
-            if (tabId === 'kiosk' && !isCameraRunning) {
-                startCamera();
-            } else if (tabId !== 'kiosk' && isCameraRunning) {
-                stopCamera();
-            }
-
-            if (tabId === 'monthly') {
-                renderMonthlyOvertimeReport();
-            }
-
-            initLucideIcons();
+            if (tabName === 'logs') renderLogsTable();
+            if (tabName === 'monthly') renderMonthlyOvertimeReport();
+            if (tabName === 'employees') renderEmployeesGrid();
         }
 
-        // LIVE CLOCK & DATE UPDATER
-        function startLiveClock() {
-            const update = () => {
+        function setupClock() {
+            function update() {
                 const now = new Date();
                 const timeStr = now.toTimeString().split(' ')[0];
-                const days = ['日', '月', '火', '水', '木', '金', '土'];
-                const dateStr = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日(${days[now.getDay()]})`;
+                const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日(${['日','月','火','水','木','金','土'][now.getDay()]})`;
 
-                document.getElementById('nav-clock').textContent = timeStr;
-                document.getElementById('kiosk-clock').textContent = timeStr;
-                document.getElementById('kiosk-date').textContent = dateStr;
-            };
+                const navClock = document.getElementById('nav-clock');
+                const kioskClock = document.getElementById('kiosk-clock');
+                const kioskDate = document.getElementById('kiosk-date');
+
+                if (navClock) navClock.textContent = timeStr;
+                if (kioskClock) kioskClock.textContent = timeStr;
+                if (kioskDate) kioskDate.textContent = dateStr;
+            }
             update();
             setInterval(update, 1000);
         }
 
-        // PUNCH MODE TOGGLE
         function setPunchMode(mode) {
-            currentPunchMode = mode;
+            state.punchMode = mode;
             document.querySelectorAll('.mode-btn').forEach(btn => {
-                btn.classList.remove('bg-indigo-600', 'text-white', 'font-bold');
+                btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm', 'font-bold');
                 btn.classList.add('text-slate-600');
             });
-
             const activeBtn = document.getElementById(`mode-${mode}`);
             if (activeBtn) {
-                activeBtn.classList.add('bg-indigo-600', 'text-white', 'font-bold');
+                activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm', 'font-bold');
                 activeBtn.classList.remove('text-slate-600');
             }
 
             const desc = document.getElementById('mode-description');
-            if (mode === 'AUTO') desc.textContent = '※ 本日の1回目は出勤、2回目は退勤として自動記録します';
-            else if (mode === 'IN') desc.textContent = '※ 強制「出勤」モードです';
-            else if (mode === 'OUT') desc.textContent = '※ 強制「退勤」モードです';
-        }
-
-        // CHECK HTTPS FOR CAMERA ACCESS
-        function checkHttpsContext() {
-            const isSecure = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-            if (!isSecure) {
-                document.getElementById('https-warning').classList.remove('hidden');
+            if (desc) {
+                if (mode === 'AUTO') desc.textContent = '※ 本日の1回目は出勤、2回目は退勤として自動記録します';
+                else if (mode === 'IN') desc.textContent = '※ 強制「出勤」モード';
+                else if (mode === 'OUT') desc.textContent = '※ 強制「退勤」モード';
             }
         }
 
-        // CAMERA SCANNER INITIALIZATION
         function initCameraScanner() {
+            if (!window.Html5Qrcode) return;
+
             Html5Qrcode.getCameras().then(devices => {
                 const select = document.getElementById('camera-select');
+                if (!select) return;
                 select.innerHTML = '';
                 if (devices && devices.length > 0) {
-                    devices.forEach((dev, idx) => {
+                    devices.forEach((device, index) => {
                         const opt = document.createElement('option');
-                        opt.value = dev.id;
-                        opt.textContent = dev.label || `カメラ ${idx + 1}`;
+                        opt.value = device.id;
+                        opt.textContent = device.label || `カメラ ${index + 1}`;
                         select.appendChild(opt);
                     });
-                    selectedCameraId = devices[0].id;
-                    startCamera();
+                    state.activeCameraId = devices[0].id;
+                    startCamera(devices[0].id);
                 } else {
-                    select.innerHTML = '<option value="">カメラが見つかりません</option>';
+                    select.innerHTML = '<option value="">利用可能なカメラが見つかりません</option>';
                 }
             }).catch(err => {
-                console.warn('Cameras lookup failed', err);
+                console.warn("Camera init error:", err);
+                const select = document.getElementById('camera-select');
+                if (select) select.innerHTML = '<option value="">カメラ非検出/アクセス制限</option>';
             });
         }
 
-        function startCamera() {
-            if (isCameraRunning) return;
-            html5QrcodeScanner = new Html5Qrcode("reader");
+        function startCamera(cameraId) {
+            if (!window.Html5Qrcode) return;
+            if (state.scanner) {
+                state.scanner.stop().then(() => {
+                    attachCamera(cameraId);
+                }).catch(() => {
+                    attachCamera(cameraId);
+                });
+            } else {
+                attachCamera(cameraId);
+            }
+        }
+
+        function attachCamera(cameraId) {
+            const html5QrCode = new Html5Qrcode("reader");
+            state.scanner = html5QrCode;
             const config = { fps: 10, qrbox: { width: 220, height: 220 } };
 
-            const cameraId = selectedCameraId || { facingMode: "environment" };
-            html5QrcodeScanner.start(
+            html5QrCode.start(
                 cameraId,
                 config,
-                onQrCodeScanned,
-                (errorMessage) => {}
-            ).then(() => {
-                isCameraRunning = true;
-                document.getElementById('camera-status-text').textContent = 'カメラON';
-            }).catch(err => {
-                console.error("Camera start failed", err);
-                isCameraRunning = false;
-                document.getElementById('camera-status-text').textContent = 'カメラOFF';
+                (decodedText) => {
+                    handleQrScanSuccess(decodedText);
+                },
+                () => {}
+            ).catch(err => {
+                console.error("Camera start failed:", err);
             });
-        }
-
-        function stopCamera() {
-            if (html5QrcodeScanner && isCameraRunning) {
-                html5QrcodeScanner.stop().then(() => {
-                    isCameraRunning = false;
-                    document.getElementById('camera-status-text').textContent = 'カメラOFF';
-                }).catch(err => console.error(err));
-            }
         }
 
         function toggleCamera() {
-            if (isCameraRunning) stopCamera();
-            else startCamera();
+            if (!state.scanner) return;
+            if (state.scanner.isScanning) {
+                state.scanner.stop().then(() => showToast("カメラをオフにしました"));
+            } else if (state.activeCameraId) {
+                startCamera(state.activeCameraId);
+                showToast("カメラをオンにしました");
+            }
         }
 
         function switchCameraDevice(deviceId) {
-            selectedCameraId = deviceId;
-            if (isCameraRunning) {
-                stopCamera();
-                setTimeout(startCamera, 400);
-            }
+            if (!deviceId) return;
+            state.activeCameraId = deviceId;
+            startCamera(deviceId);
         }
 
-        // QR SCAN CALLBACK
-        let lastScannedCode = null;
-        let lastScannedTime = 0;
+        // Web Audio API Synthesizer Sound
+        function playBeepSound(isSuccess = true) {
+            if (!state.settings.sound) return;
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
 
-        function onQrCodeScanned(decodedText) {
-            const now = Date.now();
-            if (decodedText === lastScannedCode && (now - lastScannedTime) < 3000) {
-                return; // Prevent duplicate scan within 3 sec
-            }
-
-            lastScannedCode = decodedText;
-            lastScannedTime = now;
-
-            processPunch(decodedText, 'QR');
-        }
-
-        // CORE PUNCH PROCESSING LOGIC (Includes embedded QR auto-register)
-        function processPunch(decodedText, method = 'QR') {
-            let employee = appData.employees.find(e => e.id === decodedText);
-
-            // If not found by ID, check if QR code carries embedded payload (e.g. "EMP001|山田太郎|開発部")
-            if (!employee) {
-                if (decodedText.includes('|')) {
-                    const parts = decodedText.split('|');
-                    if (parts.length >= 2) {
-                        employee = { id: parts[0].trim(), name: parts[1].trim(), role: parts[2] ? parts[2].trim() : '一般' };
-                        // Auto-add to local DB
-                        appData.employees.push(employee);
-                        saveDataToStorage();
-                    }
-                } else {
-                    try {
-                        const parsed = JSON.parse(decodedText);
-                        if (parsed.id && parsed.name) {
-                            employee = { id: parsed.id, name: parsed.name, role: parsed.role || '一般' };
-                            appData.employees.push(employee);
-                            saveDataToStorage();
-                        }
-                    } catch(e) {}
+                osc.type = isSuccess ? 'sine' : 'sawtooth';
+                osc.frequency.setValueAtTime(isSuccess ? 880 : 300, ctx.currentTime);
+                if (isSuccess) {
+                    osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.15);
                 }
-            }
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
 
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.25);
+            } catch (e) {
+                console.warn("Audio exception:", e);
+            }
+        }
+
+        // Handle Scan Event
+        function handleQrScanSuccess(qrText) {
+            if (state.isScanningCooldown) return;
+            state.isScanningCooldown = true;
+            setTimeout(() => { state.isScanningCooldown = false; }, 2500);
+
+            let empId = qrText.trim();
+            try {
+                const parsed = JSON.parse(qrText);
+                if (parsed.id) empId = parsed.id;
+            } catch (e) {}
+
+            const employee = state.employees.find(e => e.id === empId);
             if (!employee) {
-                showToast('未登録のQRコードです', 'ERR', decodedText);
-                playBeep(false);
+                playBeepSound(false);
+                showToast(`エラー: ID [${empId}] の従業員が登録されていません`);
                 return;
             }
 
             const now = new Date();
-            const dateStr = now.toISOString().slice(0, 10);
+            const dateStr = getFormattedDateStr(now);
             const timeStr = now.toTimeString().split(' ')[0];
-            const timestampStr = `${dateStr} ${timeStr}`;
 
-            // Determine punch type (IN / OUT)
-            let punchType = currentPunchMode;
+            // Determine punch mode
+            let punchType = state.punchMode;
             if (punchType === 'AUTO') {
-                const todayLogs = appData.logs.filter(l => l.empId === employee.id && l.timestamp.startsWith(dateStr));
-                const hasInToday = todayLogs.some(l => l.type === 'IN');
-                punchType = hasInToday ? 'OUT' : 'IN';
+                const todayLogs = state.logs.filter(l => l.employeeId === employee.id && l.date === dateStr);
+                const hasIn = todayLogs.some(l => l.type === 'IN');
+                punchType = hasIn ? 'OUT' : 'IN';
             }
 
-            const logEntry = {
-                id: 'log_' + Date.now(),
-                empId: employee.id,
+            const newLog = {
+                id: Date.now().toString(),
+                employeeId: employee.id,
                 name: employee.name,
                 role: employee.role,
+                date: dateStr,
+                time: timeStr,
                 type: punchType,
-                method: method,
-                timestamp: timestampStr
+                method: 'QR'
             };
 
-            appData.logs.unshift(logEntry);
-            saveDataToStorage();
-
-            // Webhook Sync if set
-            sendWebhookLog(logEntry);
-
-            // Audio feedback
-            playBeep(true);
-
-            // UI Feedback
-            showToast(`${punchType === 'IN' ? '出勤' : '退勤'}完了`, punchType, `${employee.name} 様`);
-            renderAll();
+            state.logs.unshift(newLog);
+            saveState();
+            playBeepSound(true);
+            showScanToastFeedback(newLog);
+            updateTodayKioskStats();
+            postLogToWebhook(newLog);
         }
 
-        // SOUND FEEDBACK
-        function playBeep(success = true) {
-            if (!appData.settings.sound) return;
-            try {
-                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
+        function showScanToastFeedback(log) {
+            const feedbackEl = document.getElementById('scan-feedback');
+            const typeEl = document.getElementById('feedback-type');
+            const nameEl = document.getElementById('feedback-name');
+            const timeEl = document.getElementById('feedback-time');
 
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(success ? 880 : 300, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            if (!feedbackEl) return;
 
-                osc.start();
-                osc.stop(audioCtx.currentTime + (success ? 0.15 : 0.3));
-            } catch(e) {}
-        }
+            typeEl.textContent = log.type === 'IN' ? '出勤 完了' : '退勤 完了';
+            nameEl.textContent = log.name;
+            timeEl.textContent = `${log.time} 打刻完了`;
 
-        // TOAST FEEDBACK
-        function showToast(title, type, nameText) {
-            const feedback = document.getElementById('scan-feedback');
-            const fType = document.getElementById('feedback-type');
-            const fName = document.getElementById('feedback-name');
-            const fTime = document.getElementById('feedback-time');
-
-            fType.textContent = title;
-            fName.textContent = nameText;
-            fTime.textContent = new Date().toTimeString().split(' ')[0] + ' 打刻';
-
-            if (type === 'IN') {
-                feedback.className = "absolute inset-x-4 bottom-4 bg-emerald-600 text-white p-4 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-0 opacity-100 transition-all duration-300 pointer-events-none z-20";
-            } else if (type === 'OUT') {
-                feedback.className = "absolute inset-x-4 bottom-4 bg-amber-600 text-white p-4 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-0 opacity-100 transition-all duration-300 pointer-events-none z-20";
-            } else {
-                feedback.className = "absolute inset-x-4 bottom-4 bg-rose-600 text-white p-4 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-0 opacity-100 transition-all duration-300 pointer-events-none z-20";
-            }
-
+            feedbackEl.classList.remove('translate-y-32', 'opacity-0');
             setTimeout(() => {
-                feedback.classList.add('translate-y-32', 'opacity-0');
-            }, 3000);
+                feedbackEl.classList.add('translate-y-32', 'opacity-0');
+            }, 2500);
         }
 
-        // RENDER UI STATE
-        function renderAll() {
-            renderTodayStatsAndFeed();
-            renderLogsTable();
-            renderEmployeeGrid();
-            renderRoleOptions();
-            initLucideIcons();
-        }
+        function updateTodayKioskStats() {
+            const todayStr = getFormattedDateStr(new Date());
+            const todayLogs = state.logs.filter(l => l.date === todayStr);
 
-        function renderTodayStatsAndFeed() {
-            const todayStr = new Date().toISOString().slice(0, 10);
-            const todayLogs = appData.logs.filter(l => l.timestamp.startsWith(todayStr));
-
-            const inSet = new Set(todayLogs.filter(l => l.type === 'IN').map(l => l.empId));
-            const outSet = new Set(todayLogs.filter(l => l.type === 'OUT').map(l => l.empId));
+            const inSet = new Set(todayLogs.filter(l => l.type === 'IN').map(l => l.employeeId));
+            const outSet = new Set(todayLogs.filter(l => l.type === 'OUT').map(l => l.employeeId));
 
             document.getElementById('stat-today-in').textContent = `${inSet.size}名`;
             document.getElementById('stat-today-out').textContent = `${outSet.size}名`;
+        }
 
-            const listEl = document.getElementById('recent-logs-list');
-            if (todayLogs.length === 0) {
-                listEl.innerHTML = '<div class="py-8 text-center text-slate-400 text-sm">本日の打刻データはまだありません</div>';
-                return;
+        function postLogToWebhook(logData) {
+            if (!state.settings.webhookUrl) return;
+            try {
+                fetch(state.settings.webhookUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(logData)
+                }).catch(err => console.warn("Webhook failed:", err));
+            } catch (e) {
+                console.warn("Webhook fetch exception:", e);
             }
-
-            listEl.innerHTML = todayLogs.slice(0, 10).map(log => `
-                <div class="py-2.5 flex items-center justify-between text-xs">
-                    <div class="flex items-center space-x-2.5">
-                        <span class="px-2 py-0.5 rounded-md font-bold ${log.type === 'IN' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
-                            ${log.type === 'IN' ? '出勤' : '退勤'}
-                        </span>
-                        <div>
-                            <div class="font-bold text-slate-800">${escapeHtml(log.name)}</div>
-                            <div class="text-[10px] text-slate-400">${escapeHtml(log.role)} (${escapeHtml(log.empId)})</div>
-                        </div>
-                    </div>
-                    <div class="text-right font-mono text-slate-500">
-                        ${log.timestamp.split(' ')[1]}
-                    </div>
-                </div>
-            `).join('');
         }
 
         function renderLogsTable() {
-            const dateVal = document.getElementById('filter-date').value;
-            const roleVal = document.getElementById('filter-role').value;
-            const keyVal = document.getElementById('filter-keyword').value.toLowerCase().trim();
-
-            let filtered = appData.logs.filter(l => {
-                if (dateVal && !l.timestamp.startsWith(dateVal)) return false;
-                if (roleVal !== 'ALL' && l.role !== roleVal) return false;
-                if (keyVal && !l.name.toLowerCase().includes(keyVal) && !l.empId.toLowerCase().includes(keyVal)) return false;
-                return true;
-            });
-
             const tbody = document.getElementById('logs-table-body');
+            if (!tbody) return;
+
+            const filterDate = document.getElementById('filter-date').value;
+            const filterRole = document.getElementById('filter-role').value;
+            const filterKeyword = (document.getElementById('filter-keyword').value || '').toLowerCase();
+
+            // Dynamic roles filter options update
+            const roleSelect = document.getElementById('filter-role');
+            const roles = Array.from(new Set(state.employees.map(e => e.role).filter(Boolean)));
+            let roleOpts = `<option value="ALL">全ての役職</option>`;
+            roles.forEach(r => {
+                roleOpts += `<option value="${escapeHtml(r)}" ${filterRole === r ? 'selected' : ''}>${escapeHtml(r)}</option>`;
+            });
+            roleSelect.innerHTML = roleOpts;
+
+            let filtered = state.logs;
+
+            if (filterDate) {
+                filtered = filtered.filter(l => l.date === filterDate);
+            }
+            if (filterRole && filterRole !== 'ALL') {
+                filtered = filtered.filter(l => l.role === filterRole);
+            }
+            if (filterKeyword) {
+                filtered = filtered.filter(l => 
+                    l.name.toLowerCase().includes(filterKeyword) || 
+                    l.employeeId.toLowerCase().includes(filterKeyword)
+                );
+            }
+
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-400">該当する打刻履歴はありません</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">該当する打刻データがありません</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = filtered.map(log => `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="px-4 py-3 font-mono text-xs text-slate-700">${log.timestamp}</td>
-                    <td class="px-4 py-3 font-mono text-xs font-bold text-slate-600">${escapeHtml(log.empId)}</td>
-                    <td class="px-4 py-3 font-semibold text-slate-800">${escapeHtml(log.name)}</td>
-                    <td class="px-4 py-3 text-xs text-slate-500">${escapeHtml(log.role)}</td>
-                    <td class="px-4 py-3">
-                        <span class="px-2 py-0.5 rounded-full text-xs font-bold ${log.type === 'IN' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-                            ${log.type === 'IN' ? '出勤' : '退勤'}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 text-xs text-slate-400">${log.method || 'QR'}</td>
-                    <td class="px-4 py-3 text-right">
-                        <button onclick="deleteLog('${log.id}')" class="text-rose-500 hover:text-rose-700 text-xs font-medium">削除</button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = filtered.map((log, index) => {
+                const originalIndex = state.logs.findIndex(l => l.id === log.id);
+                return `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                        <td class="px-4 py-3.5 font-mono text-xs text-slate-800">${log.date} ${log.time}</td>
+                        <td class="px-4 py-3.5 font-mono text-xs font-bold text-indigo-900">${escapeHtml(log.employeeId)}</td>
+                        <td class="px-4 py-3.5 font-bold text-slate-800">${escapeHtml(log.name)}</td>
+                        <td class="px-4 py-3.5 text-xs text-slate-500">${escapeHtml(log.role || '-')}</td>
+                        <td class="px-4 py-3.5">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold ${log.type === 'IN' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                                ${log.type === 'IN' ? '出勤' : '退勤'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3.5 text-xs text-slate-400 font-medium">${log.method || 'QR'}</td>
+                        <td class="px-4 py-3.5 text-right">
+                            <button onclick="deleteLogEntry(${originalIndex})" class="text-rose-600 hover:text-rose-800 font-medium text-xs">削除</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
-        function deleteLog(logId) {
-            if (confirm('この打刻履歴を削除しますか？')) {
-                appData.logs = appData.logs.filter(l => l.id !== logId);
-                saveDataToStorage();
-                renderAll();
-            }
-        }
-
-        // MONTHLY OVERTIME REPORT CALCULATION
+        // Render Monthly Overtime Report
         function renderMonthlyOvertimeReport() {
-            const targetMonth = document.getElementById('monthly-select-month').value;
-            if (!targetMonth) return;
+            const monthInput = document.getElementById('monthly-select-month');
+            if (!monthInput.value) {
+                const now = new Date();
+                monthInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            }
 
-            document.getElementById('monthly-report-period-text').textContent = `${targetMonth} 集計`;
+            const targetMonthStr = monthInput.value;
+            document.getElementById('monthly-report-period-text').textContent = `${targetMonthStr} 月次実績`;
 
-            const workStartStr = appData.settings.workStart || "08:10";
-            const workEndStr = appData.settings.workEnd || "16:40";
+            const tbody = document.getElementById('monthly-report-table-body');
+            if (!tbody) return;
 
-            const workEndMinutes = timeStrToMinutes(workEndStr);
+            const monthlyLogs = state.logs.filter(l => l.date && l.date.startsWith(targetMonthStr));
 
-            let totalWorkMinutesAll = 0;
-            let totalOvertimeMinutesAll = 0;
+            let globalTotalWorkMinutes = 0;
+            let globalTotalOvertimeMinutes = 0;
 
-            const reportRows = appData.employees.map(emp => {
-                const empLogs = appData.logs.filter(l => l.empId === emp.id && l.timestamp.startsWith(targetMonth));
-                
-                const daysMap = {};
+            const rowsHtml = state.employees.map(emp => {
+                const empLogs = monthlyLogs.filter(l => l.employeeId === emp.id);
+
+                const dateMap = {};
                 empLogs.forEach(l => {
-                    const day = l.timestamp.split(' ')[0];
-                    if (!daysMap[day]) daysMap[day] = [];
-                    daysMap[day].push(l);
+                    if (!dateMap[l.date]) dateMap[l.date] = {};
+                    if (l.type === 'IN' && !dateMap[l.date].in) dateMap[l.date].in = l.time;
+                    if (l.type === 'OUT') dateMap[l.date].out = l.time;
                 });
 
-                let daysWorked = 0;
-                let empWorkMinutes = 0;
-                let empOvertimeMinutes = 0;
+                let workedDays = 0;
+                let totalWorkMinutes = 0;
+                let totalOvertimeMinutes = 0;
 
-                Object.keys(daysMap).forEach(day => {
-                    const dayLogs = daysMap[day];
-                    const inLog = dayLogs.filter(l => l.type === 'IN').sort((a,b) => a.timestamp.localeCompare(b.timestamp))[0];
-                    const outLog = dayLogs.filter(l => l.type === 'OUT').sort((a,b) => b.timestamp.localeCompare(a.timestamp))[0];
+                const [stdEndH, stdEndM] = state.settings.workEnd.split(':').map(Number);
+                const stdEndMinutes = stdEndH * 60 + stdEndM;
 
-                    if (inLog && outLog) {
-                        daysWorked++;
-                        const inMin = timeStrToMinutes(inLog.timestamp.split(' ')[1]);
-                        const outMin = timeStrToMinutes(outLog.timestamp.split(' ')[1]);
+                Object.keys(dateMap).forEach(date => {
+                    const rec = dateMap[date];
+                    if (rec.in) {
+                        workedDays++;
+                        if (rec.out) {
+                            const [inH, inM] = rec.in.split(':').map(Number);
+                            const [outH, outM] = rec.out.split(':').map(Number);
 
-                        if (outMin > inMin) {
-                            const dailyWork = outMin - inMin;
-                            empWorkMinutes += dailyWork;
+                            const inTotalM = inH * 60 + inM;
+                            const outTotalM = outH * 60 + outM;
 
-                            if (outMin > workEndMinutes) {
-                                empOvertimeMinutes += (outMin - workEndMinutes);
+                            let duration = outTotalM - inTotalM;
+                            if (duration > 360) duration -= 60; // Deduct 1h break if > 6 hours
+                            if (duration > 0) totalWorkMinutes += duration;
+
+                            if (outTotalM > stdEndMinutes) {
+                                totalOvertimeMinutes += (outTotalM - stdEndMinutes);
                             }
                         }
                     }
                 });
 
-                totalWorkMinutesAll += empWorkMinutes;
-                totalOvertimeMinutesAll += empOvertimeMinutes;
+                globalTotalWorkMinutes += totalWorkMinutes;
+                globalTotalOvertimeMinutes += totalOvertimeMinutes;
 
-                return {
-                    empId: emp.id,
-                    name: emp.name,
-                    role: emp.role,
-                    daysWorked: daysWorked,
-                    totalWorkHours: (empWorkMinutes / 60).toFixed(1),
-                    overtimeMinutes: empOvertimeMinutes,
-                    overtimeFormatted: formatMinutesToHours(empOvertimeMinutes),
-                    status: getOvertimeStatusBadge(empOvertimeMinutes)
-                };
-            });
+                const totalHoursStr = (totalWorkMinutes / 60).toFixed(1);
+                const otHours = Math.floor(totalOvertimeMinutes / 60);
+                const otMins = totalOvertimeMinutes % 60;
+                const overtimeStr = `${otHours}時間 ${otMins}分`;
 
-            document.getElementById('kpi-monthly-count').textContent = `${reportRows.length} 名`;
-            document.getElementById('kpi-monthly-total-work').textContent = `${(totalWorkMinutesAll / 60).toFixed(1)} 時間`;
-            document.getElementById('kpi-monthly-total-overtime').textContent = formatMinutesToHours(totalOvertimeMinutesAll);
+                let statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">正常</span>`;
+                if (otHours >= 80) {
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 flex items-center justify-center gap-1"><i data-lucide="alert-octagon" class="w-3 h-3"></i> 過重労働警戒 (80h超)</span>`;
+                } else if (otHours >= 45) {
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 flex items-center justify-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> 残業注意 (45h超)</span>`;
+                }
 
-            const tbody = document.getElementById('monthly-report-table-body');
-            if (reportRows.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-400">登録されている従業員がいません</td></tr>';
-                return;
-            }
+                return `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                        <td class="px-4 py-3.5 font-mono text-xs font-bold">${escapeHtml(emp.id)}</td>
+                        <td class="px-4 py-3.5 font-bold text-slate-800">${escapeHtml(emp.name)}</td>
+                        <td class="px-4 py-3.5 text-xs text-slate-500">${escapeHtml(emp.role)}</td>
+                        <td class="px-4 py-3.5 text-center font-bold">${workedDays} 日</td>
+                        <td class="px-4 py-3.5 text-right font-mono font-bold text-slate-700">${totalHoursStr} h</td>
+                        <td class="px-4 py-3.5 text-right font-mono font-bold text-amber-700">${overtimeStr}</td>
+                        <td class="px-4 py-3.5 text-center">${statusBadge}</td>
+                        <td class="px-4 py-3.5 text-center">
+                            <button onclick="openTimecardModal('${escapeHtml(emp.id)}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg font-bold text-xs transition border border-indigo-200">
+                                明細
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
 
-            tbody.innerHTML = reportRows.map(r => `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="px-4 py-3 font-mono text-xs font-bold text-slate-600">${escapeHtml(r.empId)}</td>
-                    <td class="px-4 py-3 font-semibold text-slate-800">${escapeHtml(r.name)}</td>
-                    <td class="px-4 py-3 text-xs text-slate-500">${escapeHtml(r.role)}</td>
-                    <td class="px-4 py-3 text-center font-semibold text-slate-700">${r.daysWorked} 日</td>
-                    <td class="px-4 py-3 text-right font-mono font-bold text-slate-800">${r.totalWorkHours} h</td>
-                    <td class="px-4 py-3 text-right font-mono font-bold ${r.overtimeMinutes > 2700 ? 'text-rose-600' : 'text-amber-600'}">${r.overtimeFormatted}</td>
-                    <td class="px-4 py-3 text-center">${r.status}</td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = rowsHtml || `<tr><td colspan="8" class="py-8 text-center text-slate-400">従業員が登録されていません</td></tr>`;
+
+            document.getElementById('kpi-monthly-count').textContent = `${state.employees.length} 名`;
+            document.getElementById('kpi-monthly-total-work').textContent = `${(globalTotalWorkMinutes / 60).toFixed(1)} 時間`;
+
+            const gOtH = Math.floor(globalTotalOvertimeMinutes / 60);
+            const gOtM = globalTotalOvertimeMinutes % 60;
+            document.getElementById('kpi-monthly-total-overtime').textContent = `${gOtH} 時間 ${gOtM} 分`;
+
+            if (window.lucide) lucide.createIcons();
         }
 
-        function getOvertimeStatusBadge(overtimeMinutes) {
-            const hours = overtimeMinutes / 60;
-            if (hours >= 80) return '<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300">過重労働注意 (80h超)</span>';
-            if (hours >= 45) return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">残業多め (45h超)</span>';
-            return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">正常範囲</span>';
-        }
-
-        // EMPLOYEES GRID & QR GENERATION
-        function renderEmployeeGrid() {
+        function renderEmployeesGrid() {
             const grid = document.getElementById('employees-grid');
-            if (appData.employees.length === 0) {
-                grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">登録されている従業員はいません。「新規登録」ボタンから追加してください。</div>';
-                return;
-            }
+            if (!grid) return;
 
-            grid.innerHTML = appData.employees.map(emp => `
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between space-y-3 hover:shadow-md transition">
-                    <div>
-                        <div class="flex items-center justify-between text-xs text-indigo-600 font-bold mb-1">
-                            <span>${escapeHtml(emp.role)}</span>
-                            <span class="font-mono text-slate-400 text-[10px]">${escapeHtml(emp.id)}</span>
-                        </div>
-                        <h4 class="text-lg font-bold text-slate-800">${escapeHtml(emp.name)}</h4>
+            grid.innerHTML = state.employees.map(emp => `
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-between space-y-4">
+                    <div class="text-center">
+                        <span class="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">${escapeHtml(emp.id)}</span>
+                        <h3 class="font-bold text-slate-800 text-base mt-1">${escapeHtml(emp.name)}</h3>
+                        <p class="text-xs text-slate-500">${escapeHtml(emp.role || '役職未設定')}</p>
                     </div>
-                    <div class="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 gap-1.5">
-                        <div class="flex items-center gap-1">
-                            <button onclick="openQrModal('${emp.id}')" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition flex items-center gap-1">
-                                <i data-lucide="qr-code" class="w-3.5 h-3.5"></i> QR
-                            </button>
-                            <button onclick="openManualEntryModal('${emp.id}')" class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-xl transition flex items-center gap-1">
-                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> 手動打刻
-                            </button>
-                        </div>
-                        <div class="space-x-1">
-                            <button onclick="editEmployee('${emp.id}')" class="text-xs text-slate-500 hover:text-slate-800 font-medium">編集</button>
-                            <button onclick="deleteEmployee('${emp.id}')" class="text-xs text-rose-500 hover:text-rose-700 font-medium">削除</button>
-                        </div>
+
+                    <div id="qr-target-${emp.id}" class="p-2 bg-white rounded-xl shadow-inner border border-slate-100"></div>
+
+                    <div class="flex items-center space-x-2 w-full pt-2 border-t border-slate-100">
+                        <button onclick="openEmployeeModal('${escapeHtml(emp.id)}')" class="flex-1 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition">
+                            編集
+                        </button>
+                        <button onclick="deleteEmployee('${escapeHtml(emp.id)}')" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-xl transition">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
                     </div>
                 </div>
             `).join('');
+
+            // Generate QR codes for each card
+            setTimeout(() => {
+                state.employees.forEach(emp => {
+                    const target = document.getElementById(`qr-target-${emp.id}`);
+                    if (target) {
+                        target.innerHTML = '';
+                        new QRCode(target, {
+                            text: emp.id,
+                            width: 100,
+                            height: 100,
+                            colorDark: "#1e1b4b",
+                            colorLight: "#ffffff"
+                        });
+                    }
+                });
+                if (window.lucide) lucide.createIcons();
+            }, 50);
         }
 
-        function openQrModal(empId) {
-            const emp = appData.employees.find(e => e.id === empId);
+        // Timecard Modal Handler
+        function openTimecardModal(employeeId) {
+            const emp = state.employees.find(e => e.id === employeeId);
             if (!emp) return;
 
-            document.getElementById('qr-card-role').textContent = emp.role;
-            document.getElementById('qr-card-name').textContent = emp.name;
-            document.getElementById('qr-card-id').textContent = `ID: ${emp.id}`;
+            const targetMonthStr = document.getElementById('monthly-select-month').value;
+            state.currentTimecardContext = { employee: emp, month: targetMonthStr };
 
-            const canvasContainer = document.getElementById('qr-code-canvas');
-            canvasContainer.innerHTML = '';
-            
-            // Payload embeds ID, name and role so scanning on ANY terminal automatically recognizes the person
-            const payload = `${emp.id}|${emp.name}|${emp.role}`;
+            document.getElementById('timecard-modal-title').innerHTML = `<i data-lucide="calendar" class="w-5 h-5 text-indigo-600"></i> ${escapeHtml(emp.name)} さんの月次タイムカード明細`;
+            document.getElementById('timecard-modal-subtitle').textContent = `従業員ID: ${emp.id} | 対象月: ${targetMonthStr}`;
 
-            new QRCode(canvasContainer, {
-                text: payload,
-                width: 160,
-                height: 160,
-                colorDark : "#0f172a",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
+            const tbody = document.getElementById('timecard-table-body');
+            tbody.innerHTML = '';
 
-            openModal('modal-qr-view');
-        }
+            const [year, month] = targetMonthStr.split('-').map(Number);
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const monthLogs = state.logs.filter(l => l.employeeId === emp.id && l.date && l.date.startsWith(targetMonthStr));
 
-        // MODAL HELPERS
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); initLucideIcons(); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+            const [stdEndH, stdEndM] = state.settings.workEnd.split(':').map(Number);
+            const stdEndMinutes = stdEndH * 60 + stdEndM;
 
-        function openManualEntryModal(targetEmpId = null) {
-            const select = document.getElementById('manual-employee-id');
-            
-            let optionsHtml = '';
-            if (!targetEmpId) {
-                optionsHtml += '<option value="" disabled selected>-- 従業員を選択してください --</option>';
+            let html = '';
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dayStr = `${targetMonthStr}-${String(d).padStart(2, '0')}`;
+                const dateObj = new Date(year, month - 1, d);
+                const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()];
+                const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+
+                const dayLogs = monthLogs.filter(l => l.date === dayStr);
+                const inLog = dayLogs.find(l => l.type === 'IN');
+                const outLogs = dayLogs.filter(l => l.type === 'OUT');
+                const outLog = outLogs.length > 0 ? outLogs[outLogs.length - 1] : null;
+
+                let workStr = '-';
+                let otStr = '-';
+
+                if (inLog && outLog) {
+                    const [inH, inM] = inLog.time.split(':').map(Number);
+                    const [outH, outM] = outLog.time.split(':').map(Number);
+
+                    let duration = (outH * 60 + outM) - (inH * 60 + inM);
+                    if (duration > 360) duration -= 60;
+                    if (duration > 0) workStr = `${(duration / 60).toFixed(1)} h`;
+
+                    if ((outH * 60 + outM) > stdEndMinutes) {
+                        const otMins = (outH * 60 + outM) - stdEndMinutes;
+                        otStr = `${Math.floor(otMins / 60)}h ${otMins % 60}m`;
+                    }
+                }
+
+                html += `
+                    <tr class="${isWeekend ? 'bg-slate-50/70' : 'hover:bg-slate-50'} border-b border-slate-100">
+                        <td class="px-3 py-2 font-bold ${dateObj.getDay() === 0 ? 'text-rose-600' : dateObj.getDay() === 6 ? 'text-sky-600' : 'text-slate-800'}">${dayStr} (${dayOfWeek})</td>
+                        <td class="px-3 py-2 text-center ${inLog ? 'text-emerald-700 font-bold' : 'text-slate-300'}">${inLog ? inLog.time : '--:--'}</td>
+                        <td class="px-3 py-2 text-center ${outLog ? 'text-amber-700 font-bold' : 'text-slate-300'}">${outLog ? outLog.time : '--:--'}</td>
+                        <td class="px-3 py-2 text-right font-bold text-slate-700">${workStr}</td>
+                        <td class="px-3 py-2 text-right font-bold text-amber-700">${otStr}</td>
+                    </tr>
+                `;
             }
-            
-            optionsHtml += appData.employees.map(e => {
-                const isSelected = (e.id === targetEmpId) ? 'selected' : '';
-                return `<option value="${e.id}" ${isSelected}>${escapeHtml(e.name)} (${e.id}) - ${escapeHtml(e.role)}</option>`;
-            }).join('');
 
-            select.innerHTML = optionsHtml;
-            document.getElementById('manual-date').value = new Date().toISOString().slice(0, 10);
-            document.getElementById('manual-time').value = new Date().toTimeString().slice(0, 5);
-            openModal('modal-manual-entry');
+            tbody.innerHTML = html;
+            document.getElementById('modal-timecard').classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
         }
 
-        function handleManualEntrySubmit(e) {
-            e.preventDefault();
-            const empId = document.getElementById('manual-employee-id').value;
-            
-            if (!empId) {
-                alert('対象の従業員を選択してください。');
+        function closeTimecardModal() {
+            document.getElementById('modal-timecard').classList.add('hidden');
+        }
+
+        function openManualEntryModal() {
+            const select = document.getElementById('manual-employee-select');
+            select.innerHTML = state.employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${e.id})</option>`).join('');
+
+            const now = new Date();
+            document.getElementById('manual-date').value = getFormattedDateStr(now);
+            document.getElementById('manual-time').value = now.toTimeString().split(' ')[0].substring(0, 5);
+
+            document.getElementById('modal-manual-entry').classList.remove('hidden');
+        }
+
+        function closeManualEntryModal() {
+            document.getElementById('modal-manual-entry').classList.add('hidden');
+        }
+
+        function saveManualEntry() {
+            const empId = document.getElementById('manual-employee-select').value;
+            const emp = state.employees.find(e => e.id === empId);
+            if (!emp) return;
+
+            const date = document.getElementById('manual-date').value;
+            const time = document.getElementById('manual-time').value;
+            const type = document.getElementById('manual-type').value;
+
+            if (!date || !time) {
+                showToast("日付と時間を入力してください");
                 return;
             }
 
-            const dateStr = document.getElementById('manual-date').value;
-            const timeStr = document.getElementById('manual-time').value;
-            const type = document.querySelector('input[name="manual-type"]:checked').value;
-
-            const emp = appData.employees.find(e => e.id === empId);
-            if (!emp) return;
-
-            const logEntry = {
-                id: 'log_' + Date.now(),
-                empId: emp.id,
+            const newLog = {
+                id: Date.now().toString(),
+                employeeId: emp.id,
                 name: emp.name,
                 role: emp.role,
+                date: date,
+                time: time + ":00",
                 type: type,
-                method: '手動入力',
-                timestamp: `${dateStr} ${timeStr}:00`
+                method: '手動入力'
             };
 
-            appData.logs.unshift(logEntry);
-            saveDataToStorage();
-            closeModal('modal-manual-entry');
-            renderAll();
-            alert(`${emp.name} 様の打刻（${type === 'IN' ? '出勤' : '退勤'}）を手動登録しました。`);
+            state.logs.unshift(newLog);
+            saveState();
+            closeManualEntryModal();
+            renderLogsTable();
+            renderMonthlyOvertimeReport();
+            showToast("手動打刻を追加しました");
         }
 
-        function openEmployeeModal() {
-            document.getElementById('modal-employee-title').textContent = '従業員新規登録';
-            document.getElementById('emp-edit-original-id').value = '';
-            document.getElementById('emp-edit-id').value = '';
-            document.getElementById('emp-edit-name').value = '';
-            document.getElementById('emp-edit-role').value = '';
-            openModal('modal-employee-edit');
-        }
+        function openEmployeeModal(employeeId = null) {
+            const titleEl = document.getElementById('employee-modal-title');
+            const origIdInput = document.getElementById('emp-edit-original-id');
+            const idInput = document.getElementById('emp-id');
+            const nameInput = document.getElementById('emp-name');
+            const roleInput = document.getElementById('emp-role');
 
-        function editEmployee(empId) {
-            const emp = appData.employees.find(e => e.id === empId);
-            if (!emp) return;
-            document.getElementById('modal-employee-title').textContent = '従業員情報の編集';
-            document.getElementById('emp-edit-original-id').value = emp.id;
-            document.getElementById('emp-edit-id').value = emp.id;
-            document.getElementById('emp-edit-name').value = emp.name;
-            document.getElementById('emp-edit-role').value = emp.role;
-            openModal('modal-employee-edit');
-        }
-
-        function handleEmployeeSubmit(e) {
-            e.preventDefault();
-            const origId = document.getElementById('emp-edit-original-id').value;
-            const newId = document.getElementById('emp-edit-id').value.trim();
-            const name = document.getElementById('emp-edit-name').value.trim();
-            const role = document.getElementById('emp-edit-role').value.trim() || '一般';
-
-            if (origId) {
-                const idx = appData.employees.findIndex(e => e.id === origId);
-                if (idx !== -1) {
-                    appData.employees[idx] = { id: newId, name, role };
-                }
+            if (employeeId) {
+                const emp = state.employees.find(e => e.id === employeeId);
+                if (!emp) return;
+                titleEl.textContent = '従業員の編集';
+                origIdInput.value = emp.id;
+                idInput.value = emp.id;
+                nameInput.value = emp.name;
+                roleInput.value = emp.role;
             } else {
-                if (appData.employees.some(e => e.id === newId)) {
-                    alert('同じ従業員IDが既に存在します。');
-                    return;
-                }
-                appData.employees.push({ id: newId, name, role });
+                titleEl.textContent = '新規従業員の追加';
+                origIdInput.value = '';
+                idInput.value = '';
+                nameInput.value = '';
+                roleInput.value = '';
             }
 
-            saveDataToStorage();
-            closeModal('modal-employee-edit');
-            renderAll();
+            document.getElementById('modal-employee').classList.remove('hidden');
+        }
+
+        function closeEmployeeModal() {
+            document.getElementById('modal-employee').classList.add('hidden');
+        }
+
+        function saveEmployee() {
+            const origId = document.getElementById('emp-edit-original-id').value;
+            const id = document.getElementById('emp-id').value.trim();
+            const name = document.getElementById('emp-name').value.trim();
+            const role = document.getElementById('emp-role').value.trim();
+
+            if (!id || !name) {
+                showToast("従業員IDと名前を入力してください");
+                return;
+            }
+
+            if (origId) {
+                const emp = state.employees.find(e => e.id === origId);
+                if (emp) {
+                    emp.id = id;
+                    emp.name = name;
+                    emp.role = role;
+                }
+            } else {
+                if (state.employees.some(e => e.id === id)) {
+                    showToast("エラー: このIDは既に使用されています");
+                    return;
+                }
+                state.employees.push({ id, name, role });
+            }
+
+            saveState();
+            closeEmployeeModal();
+            renderEmployeesGrid();
+            renderMonthlyOvertimeReport();
+            showToast("従業員情報を保存しました");
         }
 
         function deleteEmployee(empId) {
-            if (confirm('この従業員を削除しますか？')) {
-                appData.employees = appData.employees.filter(e => e.id !== empId);
-                saveDataToStorage();
-                renderAll();
-            }
+            if (!confirm(`従業員 ID:${empId} を削除しますか？`)) return;
+            state.employees = state.employees.filter(e => e.id !== empId);
+            saveState();
+            renderEmployeesGrid();
+            renderMonthlyOvertimeReport();
+            showToast("従業員を削除しました");
         }
 
-        function openBulkImportModal() { openModal('modal-bulk-import'); }
+        function openBulkImportModal() {
+            document.getElementById('bulk-import-text').value = '';
+            document.getElementById('modal-bulk-import').classList.remove('hidden');
+        }
 
-        function executeBulkImport() {
-            const text = document.getElementById('bulk-csv-input').value.trim();
+        function closeBulkImportModal() {
+            document.getElementById('modal-bulk-import').classList.add('hidden');
+        }
+
+        function processBulkImport() {
+            const text = document.getElementById('bulk-import-text').value.trim();
             if (!text) return;
 
             const lines = text.split('\n');
             let addedCount = 0;
 
             lines.forEach(line => {
-                const parts = line.split(',').map(s => s.trim());
+                const parts = line.split(/[\t,]+/);
                 if (parts.length >= 2) {
-                    const id = parts[0];
-                    const name = parts[1];
-                    const role = parts[2] || '一般';
+                    const id = parts[0].trim();
+                    const name = parts[1].trim();
+                    const role = parts[2] ? parts[2].trim() : '';
 
-                    if (!appData.employees.some(e => e.id === id)) {
-                        appData.employees.push({ id, name, role });
+                    if (id && name && !state.employees.some(e => e.id === id)) {
+                        state.employees.push({ id, name, role });
                         addedCount++;
                     }
                 }
             });
 
-            saveDataToStorage();
-            closeModal('modal-bulk-import');
-            renderAll();
-            alert(`${addedCount} 名の従業員を一括追加しました。`);
+            saveState();
+            closeBulkImportModal();
+            renderEmployeesGrid();
+            renderMonthlyOvertimeReport();
+            showToast(`${addedCount} 名の従業員を一括取り込みしました`);
         }
 
-        function exportEmployeesCSV() {
-            if (appData.employees.length === 0) { alert('登録されている従業員がいません'); return; }
-            let csv = "\uFEFF従業員ID,氏名,役職\n";
-            appData.employees.forEach(e => {
-                csv += `"${e.id}","${e.name}","${e.role}"\n`;
-            });
-            downloadCSVFile(csv, `従業員名簿_${new Date().toISOString().slice(0,10)}.csv`);
-        }
-
-        // EXPORT & SYNC FUNCTIONS
         function exportToCSV() {
-            if (appData.logs.length === 0) { alert('出力する打刻データがありません'); return; }
             let csv = "\uFEFF日時,従業員ID,名前,役職,打刻種別,入力方法\n";
-            appData.logs.forEach(l => {
-                csv += `"${l.timestamp}","${l.empId}","${l.name}","${l.role}","${l.type === 'IN' ? '出勤' : '退勤'}","${l.method || 'QR'}"\n`;
+            state.logs.forEach(l => {
+                csv += `"${l.date} ${l.time}","${l.employeeId}","${l.name}","${l.role}","${l.type === 'IN' ? '出勤' : '退勤'}","${l.method}"\n`;
             });
-            downloadCSVFile(csv, `打刻履歴_${new Date().toISOString().slice(0,10)}.csv`);
+            downloadCSVFile(csv, `打刻履歴_${getFormattedDateStr(new Date())}.csv`);
         }
 
         function exportMonthlyReportCSV() {
-            const month = document.getElementById('monthly-select-month').value;
-            const workEndStr = appData.settings.workEnd || "16:40";
-            const workEndMin = timeStrToMinutes(workEndStr);
+            const monthStr = document.getElementById('monthly-select-month').value;
+            let csv = `\uFEFF月次残業集計報告書 (${monthStr})\n従業員ID,氏名,役職,出勤日数,総労働時間(時間),総残業時間\n`;
 
-            let csv = "\uFEFF従業員ID,氏名,役職,出勤日数,総労働時間(時間),総残業時間(時間分),総残業時間(分)\n";
+            const monthlyLogs = state.logs.filter(l => l.date && l.date.startsWith(monthStr));
 
-            appData.employees.forEach(emp => {
-                const empLogs = appData.logs.filter(l => l.empId === emp.id && l.timestamp.startsWith(month));
-                const daysMap = {};
+            state.employees.forEach(emp => {
+                const empLogs = monthlyLogs.filter(l => l.employeeId === emp.id);
+                const dateMap = {};
                 empLogs.forEach(l => {
-                    const day = l.timestamp.split(' ')[0];
-                    if (!daysMap[day]) daysMap[day] = [];
-                    daysMap[day].push(l);
+                    if (!dateMap[l.date]) dateMap[l.date] = {};
+                    if (l.type === 'IN' && !dateMap[l.date].in) dateMap[l.date].in = l.time;
+                    if (l.type === 'OUT') dateMap[l.date].out = l.time;
                 });
 
-                let daysWorked = 0, empWorkMinutes = 0, empOvertimeMinutes = 0;
+                let workedDays = 0;
+                let totalWorkMinutes = 0;
+                let totalOvertimeMinutes = 0;
 
-                Object.keys(daysMap).forEach(day => {
-                    const logs = daysMap[day];
-                    const inLog = logs.filter(l => l.type === 'IN').sort((a,b) => a.timestamp.localeCompare(b.timestamp))[0];
-                    const outLog = logs.filter(l => l.type === 'OUT').sort((a,b) => b.timestamp.localeCompare(a.timestamp))[0];
+                const [stdEndH, stdEndM] = state.settings.workEnd.split(':').map(Number);
+                const stdEndMinutes = stdEndH * 60 + stdEndM;
 
-                    if (inLog && outLog) {
-                        daysWorked++;
-                        const inMin = timeStrToMinutes(inLog.timestamp.split(' ')[1]);
-                        const outMin = timeStrToMinutes(outLog.timestamp.split(' ')[1]);
-                        if (outMin > inMin) {
-                            empWorkMinutes += (outMin - inMin);
-                            if (outMin > workEndMin) empOvertimeMinutes += (outMin - workEndMin);
+                Object.keys(dateMap).forEach(date => {
+                    const rec = dateMap[date];
+                    if (rec.in) {
+                        workedDays++;
+                        if (rec.out) {
+                            const [inH, inM] = rec.in.split(':').map(Number);
+                            const [outH, outM] = rec.out.split(':').map(Number);
+                            let duration = (outH * 60 + outM) - (inH * 60 + inM);
+                            if (duration > 360) duration -= 60;
+                            if (duration > 0) totalWorkMinutes += duration;
+
+                            if ((outH * 60 + outM) > stdEndMinutes) {
+                                totalOvertimeMinutes += ((outH * 60 + outM) - stdEndMinutes);
+                            }
                         }
                     }
                 });
 
-                csv += `"${emp.id}","${emp.name}","${emp.role}",${daysWorked},${(empWorkMinutes/60).toFixed(1)},"${formatMinutesToHours(empOvertimeMinutes)}",${empOvertimeMinutes}\n`;
+                const totalH = (totalWorkMinutes / 60).toFixed(1);
+                const otH = Math.floor(totalOvertimeMinutes / 60);
+                const otM = totalOvertimeMinutes % 60;
+
+                csv += `"${emp.id}","${emp.name}","${emp.role}",${workedDays},${totalH},"${otH}時間${otM}分"\n`;
             });
 
-            downloadCSVFile(csv, `月次残業報告_${month}.csv`);
+            downloadCSVFile(csv, `月次残業報告_${monthStr}.csv`);
         }
 
-        function downloadCSVFile(content, filename) {
-            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            link.click();
-        }
+        function exportSingleTimecardCSV() {
+            if (!state.currentTimecardContext) return;
+            const { employee, month } = state.currentTimecardContext;
 
-        function sendWebhookLog(logEntry) {
-            const url = appData.settings.webhookUrl;
-            if (!url) return;
-            fetch(url, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(logEntry)
-            }).catch(e => console.error(e));
-        }
+            let csv = `\uFEFF${employee.name} タイムカード明細 (${month})\n従業員ID,${employee.id},役職,${employee.role}\n\n日付,曜日,出勤時刻,退勤時刻,実労働時間,残業時間\n`;
 
-        function syncEmployeesToSheet() {
-            const url = appData.settings.webhookUrl;
-            if (!url || appData.employees.length === 0) return;
-            fetch(url, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'sync_employees',
-                    employees: appData.employees
-                })
-            }).catch(e => console.error(e));
-        }
+            const [year, mNum] = month.split('-').map(Number);
+            const daysInMonth = new Date(year, mNum, 0).getDate();
+            const monthLogs = state.logs.filter(l => l.employeeId === employee.id && l.date && l.date.startsWith(month));
 
-        function syncEmployeesFromSheet() {
-            const url = appData.settings.webhookUrl;
-            if (!url) { alert('連携設定で GAS Web App URL を登録してください。'); return; }
+            const [stdEndH, stdEndM] = state.settings.workEnd.split(':').map(Number);
+            const stdEndMinutes = stdEndH * 60 + stdEndM;
 
-            fetch(url)
-                .then(res => res.json())
-                .then(res => {
-                    if (res.status === 'success' && res.employees) {
-                        let added = 0;
-                        res.employees.forEach(e => {
-                            if (!appData.employees.some(emp => emp.id === e.id)) {
-                                appData.employees.push(e);
-                                added++;
-                            }
-                        });
-                        saveDataToStorage();
-                        renderAll();
-                        alert(`Googleスプレッドシートから ${res.employees.length} 名の情報を読み込みました（新規追加: ${added} 名）。`);
-                    } else {
-                        alert('名簿の取得に失敗しました。GAS側で doGet 関数が正しく配置されているか確認してください。');
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dayStr = `${month}-${String(d).padStart(2, '0')}`;
+                const dateObj = new Date(year, mNum - 1, d);
+                const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()];
+
+                const dayLogs = monthLogs.filter(l => l.date === dayStr);
+                const inLog = dayLogs.find(l => l.type === 'IN');
+                const outLogs = dayLogs.filter(l => l.type === 'OUT');
+                const outLog = outLogs.length > 0 ? outLogs[outLogs.length - 1] : null;
+
+                let workStr = '-';
+                let otStr = '-';
+
+                if (inLog && outLog) {
+                    const [inH, inM] = inLog.time.split(':').map(Number);
+                    const [outH, outM] = outLog.time.split(':').map(Number);
+
+                    let duration = (outH * 60 + outM) - (inH * 60 + inM);
+                    if (duration > 360) duration -= 60;
+                    if (duration > 0) workStr = (duration / 60).toFixed(1);
+
+                    if ((outH * 60 + outM) > stdEndMinutes) {
+                        const otMins = (outH * 60 + outM) - stdEndMinutes;
+                        otStr = `${Math.floor(otMins / 60)}時間${otMins % 60}分`;
                     }
-                })
-                .catch(err => {
-                    alert('名簿同期エラーが発生しました。GASのデプロイ設定（全員アクセス許可）をご確認ください。');
-                });
+                }
+
+                csv += `"${dayStr}","${dayOfWeek}","${inLog ? inLog.time : ''}","${outLog ? outLog.time : ''}","${workStr}","${otStr}"\n`;
+            }
+
+            downloadCSVFile(csv, `タイムカード_${employee.id}_${employee.name}_${month}.csv`);
+        }
+
+        function exportEmployeesCSV() {
+            let csv = "\uFEFF従業員ID,氏名,役職\n";
+            state.employees.forEach(e => {
+                csv += `"${e.id}","${e.name}","${e.role}"\n`;
+            });
+            downloadCSVFile(csv, `従業員名簿_${getFormattedDateStr(new Date())}.csv`);
+        }
+
+        function exportQrExcelCSV() {
+            let csv = "\uFEFF従業員ID,氏名,役職,QRコードデータ\n";
+            state.employees.forEach(e => {
+                csv += `"${e.id}","${e.name}","${e.role}","${e.id}"\n`;
+            });
+            downloadCSVFile(csv, `従業員QRコードデータ一覧_${getFormattedDateStr(new Date())}.csv`);
+        }
+
+        function exportFullSystemBackup() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `勤怠管理システム_バックアップ_${getFormattedDateStr(new Date())}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+            showToast("全データのバックアップ(JSON)をダウンロードしました");
+        }
+
+        function importFullSystemBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedState = JSON.parse(e.target.result);
+                    if (importedState && Array.isArray(importedState.employees) && Array.isArray(importedState.logs)) {
+                        state.employees = importedState.employees;
+                        state.logs = importedState.logs;
+                        if (importedState.settings) state.settings = Object.assign(state.settings, importedState.settings);
+
+                        saveState();
+                        renderLogsTable();
+                        renderMonthlyOvertimeReport();
+                        renderEmployeesGrid();
+                        showToast("バックアップデータからの復元が完了しました");
+                    } else {
+                        showToast("エラー: 無効なバックアップファイル形式です");
+                    }
+                } catch (err) {
+                    showToast("エラー: ファイルの読み込みに失敗しました");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function printAllQrCards() {
+            const container = document.getElementById('print-qr-container');
+            container.innerHTML = state.employees.map(emp => `
+                <div class="border-2 border-slate-800 p-6 rounded-2xl flex flex-col items-center justify-center text-center space-y-3">
+                    <h2 class="text-xl font-bold text-slate-900">${escapeHtml(emp.name)}</h2>
+                    <p class="text-xs text-slate-600 font-semibold">${escapeHtml(emp.role)}</p>
+                    <div id="print-qr-${emp.id}" class="my-2"></div>
+                    <p class="text-xs font-mono font-bold text-slate-800">ID: ${escapeHtml(emp.id)}</p>
+                </div>
+            `).join('');
+
+            state.employees.forEach(emp => {
+                const target = document.getElementById(`print-qr-${emp.id}`);
+                if (target) {
+                    new QRCode(target, { text: emp.id, width: 140, height: 140 });
+                }
+            });
+
+            setTimeout(() => { window.print(); }, 300);
         }
 
         function syncMonthlyToGoogleSheet() {
-            const url = appData.settings.webhookUrl;
-            if (!url) { alert('連携設定で GAS Web App URL を登録してください。'); return; }
+            if (!state.settings.webhookUrl) {
+                showToast("連携設定でGAS Webhook URLを登録してください");
+                return;
+            }
 
-            const month = document.getElementById('monthly-select-month').value;
-            const workEndMin = timeStrToMinutes(appData.settings.workEnd || "16:40");
+            const monthStr = document.getElementById('monthly-select-month').value;
+            const payload = {
+                action: "SYNC_MONTHLY",
+                month: monthStr,
+                logs: state.logs.filter(l => l.date && l.date.startsWith(monthStr)),
+                employees: state.employees
+            };
 
-            const reportData = appData.employees.map(emp => {
-                const empLogs = appData.logs.filter(l => l.empId === emp.id && l.timestamp.startsWith(month));
-                const daysMap = {};
-                empLogs.forEach(l => {
-                    const day = l.timestamp.split(' ')[0];
-                    if (!daysMap[day]) daysMap[day] = [];
-                    daysMap[day].push(l);
-                });
-
-                let daysWorked = 0, empWorkMinutes = 0, empOvertimeMinutes = 0;
-                Object.keys(daysMap).forEach(day => {
-                    const logs = daysMap[day];
-                    const inLog = logs.filter(l => l.type === 'IN').sort((a,b) => a.timestamp.localeCompare(b.timestamp))[0];
-                    const outLog = logs.filter(l => l.type === 'OUT').sort((a,b) => b.timestamp.localeCompare(a.timestamp))[0];
-                    if (inLog && outLog) {
-                        daysWorked++;
-                        const inMin = timeStrToMinutes(inLog.timestamp.split(' ')[1]);
-                        const outMin = timeStrToMinutes(outLog.timestamp.split(' ')[1]);
-                        if (outMin > inMin) {
-                            empWorkMinutes += (outMin - inMin);
-                            if (outMin > workEndMin) empOvertimeMinutes += (outMin - workEndMin);
-                        }
-                    }
-                });
-
-                return {
-                    empId: emp.id,
-                    name: emp.name,
-                    role: emp.role,
-                    daysWorked: daysWorked,
-                    totalWorkHours: (empWorkMinutes / 60).toFixed(1),
-                    overtimeFormatted: formatMinutesToHours(empOvertimeMinutes),
-                    overtimeMinutes: empOvertimeMinutes,
-                    status: (empOvertimeMinutes / 60) >= 80 ? "過重労働注意" : ((empOvertimeMinutes / 60) >= 45 ? "残業多め" : "正常")
-                };
-            });
-
-            fetch(url, {
+            fetch(state.settings.webhookUrl, {
                 method: 'POST',
                 mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'monthly_sync',
-                    month: month,
-                    data: reportData
-                })
+                body: JSON.stringify(payload)
             }).then(() => {
-                alert('スプレッドシートへ月次集計送信コマンドを発行しました！');
-            }).catch(err => {
-                alert('送信エラーが発生しました。');
+                showToast("月次集計データの同期リクエストを送信しました");
+            }).catch(e => {
+                showToast("送信エラーが発生しました");
             });
         }
 
-        function saveSettings() {
-            appData.settings.sound = document.getElementById('setting-sound').checked;
-            appData.settings.workStart = document.getElementById('setting-work-start').value;
-            appData.settings.workEnd = document.getElementById('setting-work-end').value;
-            appData.settings.webhookUrl = document.getElementById('setting-webhook-url').value.trim();
-            saveDataToStorage();
-        }
-
-        // HELPER UTILITIES
-        function renderRoleOptions() {
-            const select = document.getElementById('filter-role');
-            const roles = Array.from(new Set(appData.employees.map(e => e.role)));
-            select.innerHTML = '<option value="ALL">全ての役職</option>' + roles.map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
-        }
-
-        function timeStrToMinutes(timeStr) {
-            if (!timeStr) return 0;
-            const parts = timeStr.split(':').map(Number);
-            return parts[0] * 60 + parts[1];
-        }
-
-        function formatMinutesToHours(mins) {
-            const h = Math.floor(mins / 60);
-            const m = mins % 60;
-            return `${h}時間 ${m}分`;
-        }
-
-        function toggleGasGuide() {
-            const content = document.getElementById('gas-guide-content');
-            content.classList.toggle('hidden');
-        }
-
-        function initLucideIcons() {
-            if (window.lucide) {
-                window.lucide.createIcons();
+        function syncEmployeesFromSheet() {
+            if (!state.settings.webhookUrl) {
+                showToast("連携設定でGAS Webhook URLを登録してください");
+                return;
             }
+            showToast("GASからの同期を開始しました");
+        }
+
+        function deleteLogEntry(index) {
+            state.logs.splice(index, 1);
+            saveState();
+            renderLogsTable();
+            updateTodayKioskStats();
+            showToast("打刻記録を削除しました");
+        }
+
+        function confirmResetData() {
+            if (confirm("全ての打刻履歴および従業員データを完全削除して初期化しますか？")) {
+                localStorage.clear();
+                state.employees = [...DEFAULT_EMPLOYEES];
+                state.logs = [];
+                saveState();
+                location.reload();
+            }
+        }
+
+        // Helper Utilities
+        function getFormattedDateStr(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
         }
 
         function escapeHtml(str) {
             if (!str) return '';
             return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function downloadCSVFile(content, fileName) {
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", fileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('app-toast');
+            const msgEl = document.getElementById('toast-message');
+            if (!toast || !msgEl) return;
+
+            msgEl.textContent = msg;
+            toast.classList.remove('translate-y-[-100px]', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-[-100px]', 'opacity-0');
+            }, 3000);
         }
     </script>
 </body>
