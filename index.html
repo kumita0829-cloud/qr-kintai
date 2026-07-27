@@ -24,7 +24,7 @@
         
         @media print {
             .no-print { display: none !important; }
-            body { background-color: white !important; font-size: 12pt; }
+            body { background-color: white !important; font-size: 11pt; color: black !important; }
             .print-only { display: block !important; }
             .page-break { page-break-after: always; }
         }
@@ -90,35 +90,13 @@
         <div class="mb-4 bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-900 flex items-center justify-between shadow-sm">
             <div class="flex items-center space-x-2">
                 <i data-lucide="shield-check" class="w-4 h-4 text-indigo-600 shrink-0"></i>
-                <span><strong>データ保持状態:</strong> 打刻・残業履歴はブラウザ内に自動的に永続保存されています（時間が経っても消去されません）。長期間運用時は「連携設定」でバックアップ保存を推奨します。</span>
+                <span><strong>データ保持状態:</strong> 打刻・残業履歴はブラウザ内に自動的に永続保存されています。スプレッドシート連携を設定するとバックアップ同期されます。</span>
             </div>
             <span id="log-count-badge" class="bg-indigo-200 text-indigo-800 font-bold px-2.5 py-0.5 rounded-full text-[11px] shrink-0">総打刻数: 0件</span>
         </div>
 
         <!-- TAB 1: KIOSK (受付・打刻) -->
         <div id="tab-kiosk" class="tab-content space-y-6 max-w-2xl mx-auto">
-            
-            <!-- Today Status Counter Cards -->
-            <div class="grid grid-cols-2 gap-3">
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-3">
-                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-                        <i data-lucide="log-in" class="w-6 h-6"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs text-slate-500 font-medium">本日出勤</div>
-                        <div id="stat-today-in" class="text-2xl font-bold text-slate-800">0名</div>
-                    </div>
-                </div>
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-3">
-                    <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
-                        <i data-lucide="log-out" class="w-6 h-6"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs text-slate-500 font-medium">本日退勤済</div>
-                        <div id="stat-today-out" class="text-2xl font-bold text-slate-800">0名</div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Scanner Window Card -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col items-center">
@@ -146,7 +124,7 @@
                 <!-- Secure Context Warning -->
                 <div id="https-warning" class="hidden w-full mb-3 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-start gap-2">
                     <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
-                    <div><span class="font-bold">注意:</span> カメラは <strong>https://</strong> または <strong>localhost</strong> で動作します。</div>
+                    <div><span class="font-bold">注意:</span> カメラ機能は <strong>https://</strong> または <strong>localhost</strong> 環境でのみ動きます。</div>
                 </div>
 
                 <!-- Camera Scanner Container -->
@@ -243,7 +221,7 @@
                                 <th class="px-4 py-3.5">名前</th>
                                 <th class="px-4 py-3.5">役職</th>
                                 <th class="px-4 py-3.5">打刻種別</th>
-                                <th class="px-4 py-3.5">入力方法</th>
+                                <th class="px-4 py-3.5">備考</th>
                                 <th class="px-4 py-3.5 text-right">操作</th>
                             </tr>
                         </thead>
@@ -260,7 +238,7 @@
                     <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
                         <i data-lucide="calendar-check" class="w-5 h-5 text-indigo-600"></i> 月次勤怠・残業集計報告シート
                     </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">月ごとの実労働時間・終業時刻（規定）を超えた残業時間を自動集計します。</p>
+                    <p class="text-xs text-slate-500">月ごとの実労働時間・終業時刻（規定）を超えた残業時間を自動集計します。</p>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-3">
@@ -342,23 +320,20 @@
             <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                 <div>
                     <h2 class="text-base font-bold text-slate-800">従業員名簿 & QRカード発行</h2>
-                    <p class="text-xs text-slate-500">個人のQRコードを発行し印刷用カードを準備できます（端末間同期に対応）。</p>
+                    <p class="text-xs text-slate-500">個人のQRコードを発行し印刷用カードを準備できます。</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="syncEmployeesFromSheet()" class="px-3 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-300 text-xs font-semibold rounded-xl transition flex items-center gap-1.5">
+                        <i data-lucide="cloud-download" class="w-4 h-4 text-sky-600"></i> GAS名簿から読み込み同期
+                    </button>
                     <button onclick="exportQrExcelCSV()" class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-xl transition flex items-center gap-1.5">
-                        <i data-lucide="file-spreadsheet" class="w-4 h-4 text-indigo-600"></i> QR画像付Excel/スプレッドシート出力
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4 text-indigo-600"></i> QRデータ一覧CSV
                     </button>
                     <button onclick="printAllQrCards()" class="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-semibold rounded-xl transition flex items-center gap-1.5">
                         <i data-lucide="printer" class="w-4 h-4 text-purple-600"></i> QRカード一括印刷・PDF
                     </button>
-                    <button onclick="exportEmployeesCSV()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 border border-slate-200">
-                        <i data-lucide="download" class="w-4 h-4 text-slate-600"></i> 名簿CSV出力
-                    </button>
                     <button onclick="openBulkImportModal()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
                         <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> 一括登録
-                    </button>
-                    <button onclick="syncEmployeesFromSheet()" class="px-3 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-300 text-xs font-semibold rounded-xl transition flex items-center gap-1.5">
-                        <i data-lucide="cloud-download" class="w-4 h-4 text-sky-600"></i> GASから名簿同期
                     </button>
                     <button onclick="openEmployeeModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5">
                         <i data-lucide="user-plus" class="w-4 h-4"></i> 新規登録
@@ -372,7 +347,7 @@
         <!-- TAB 5: SETTINGS & GOOGLE SHEETS INTEGRATION -->
         <div id="tab-settings" class="tab-content hidden space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div class="lg:col-span-7 space-y-6">
+                <div class="lg:col-span-6 space-y-6">
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
                         <h2 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
                             <i data-lucide="sliders-horizontal" class="w-5 h-5 text-indigo-600"></i> 基本システム設定
@@ -403,12 +378,12 @@
                             </div>
                         </div>
 
-                        <!-- Data Backup & Restore Section for 1-Year Operation -->
+                        <!-- Data Backup & Restore Section -->
                         <div class="pt-4 border-t border-slate-100 space-y-3">
                             <h3 class="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-                                <i data-lucide="database" class="w-4 h-4 text-indigo-600"></i> 長期運用用データバックアップ・復元
+                                <i data-lucide="database" class="w-4 h-4 text-indigo-600"></i> データバックアップ・復元
                             </h3>
-                            <p class="text-xs text-slate-500">1年分の全打刻データ・名簿・設定をファイルとして保存・復元できます。</p>
+                            <p class="text-xs text-slate-500">全打刻データ・名簿・設定をファイル(JSON)として保存・復元できます。</p>
                             <div class="flex flex-wrap gap-2">
                                 <button onclick="exportFullSystemBackup()" class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold rounded-xl transition flex items-center gap-1.5">
                                     <i data-lucide="download-cloud" class="w-4 h-4"></i> バックアップ保存(JSON)
@@ -423,7 +398,7 @@
                         <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
                             <div>
                                 <div class="text-sm font-medium text-slate-800">データ初期化</div>
-                                <div class="text-xs text-slate-500">全打刻履歴や従業員データを完全に消去します</div>
+                                <div class="text-xs text-slate-500">全打刻履歴や従業員データを消去します</div>
                             </div>
                             <button onclick="confirmResetData()" class="px-3 py-1.5 border border-rose-300 text-rose-600 hover:bg-rose-50 text-xs font-semibold rounded-xl transition">
                                 初期状態に戻す
@@ -432,28 +407,32 @@
                     </div>
                 </div>
 
-                <div class="lg:col-span-5 space-y-4">
+                <div class="lg:col-span-6 space-y-4">
                     <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 p-6 space-y-4">
                         <h2 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
-                            <i data-lucide="sheet" class="w-5 h-5 text-emerald-600"></i> Google スプレッドシート連携
+                            <i data-lucide="sheet" class="w-5 h-5 text-emerald-600"></i> Google スプレッドシート連携設定
                         </h2>
-                        <p class="text-xs text-slate-600 leading-relaxed">
-                            Google Apps Script (GAS) のウェブアプリURLを設定すると、打刻データや月次残業集計を自動的にスプレッドシートへリアルタイム同期できます。
-                        </p>
-
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">GAS Webhook URL</label>
+                        
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold text-slate-700">GAS Webアプリ URL (マクロ/ウェブアプリURL)</label>
                             <input type="url" id="setting-webhook-url" onchange="saveSettings()" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <button onclick="testGasConnection()" class="mt-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1">
+                                <i data-lucide="link" class="w-3.5 h-3.5"></i> 接続テストを実行
+                            </button>
                         </div>
 
-                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-2">
-                            <div class="font-bold text-slate-800">【GASコード例】</div>
-                            <pre class="bg-slate-900 text-emerald-400 p-3 rounded-lg overflow-x-auto font-mono text-[11px] leading-snug">function doPost(e) {
-  var data = JSON.parse(e.postData.contents);
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  sheet.appendRow([data.date, data.time, data.employeeId, data.name, data.role, data.type, data.method]);
-  return ContentService.createTextOutput("OK");
-}</pre>
+                        <!-- GAS Source Code Display & Copy Box -->
+                        <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-slate-700 flex items-center gap-1">
+                                    <i data-lucide="code" class="w-4 h-4 text-emerald-600"></i> Google Apps Script (GAS) 用コード
+                                </span>
+                                <button onclick="copyGasCode()" class="px-2.5 py-1 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-sm transition">
+                                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> コードをコピー
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-slate-500">スプレッドシートの「拡張機能」>「Apps Script」に以下のコードを貼り付けてデプロイしてください。</p>
+                            <textarea id="gas-code-textarea" readonly class="w-full h-48 p-2.5 bg-slate-900 text-emerald-400 rounded-lg font-mono text-[11px] leading-relaxed resize-y focus:outline-none select-all" spellcheck="false"></textarea>
                         </div>
                     </div>
                 </div>
@@ -487,25 +466,29 @@
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">打刻種別</label>
-                    <select id="manual-type" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium">
-                        <option value="IN">出勤 (IN)</option>
-                        <option value="OUT">退勤 (OUT)</option>
-                    </select>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="setManualType('IN')" id="manual-type-IN" class="py-2 border border-emerald-500 bg-emerald-50 text-emerald-700 font-bold rounded-xl text-center">出勤</button>
+                        <button type="button" onclick="setManualType('OUT')" id="manual-type-OUT" class="py-2 border border-slate-200 bg-slate-50 text-slate-600 font-bold rounded-xl text-center">退勤</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">修正理由・備考</label>
+                    <input type="text" id="manual-note" placeholder="打刻忘れ、現場直帰など" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
                 </div>
             </div>
-            <div class="flex items-center justify-end space-x-2 pt-3 border-t">
-                <button onclick="closeManualEntryModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">キャンセル</button>
-                <button onclick="saveManualEntry()" class="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm">登録保存</button>
+            <div class="flex justify-end gap-2 pt-2 border-t">
+                <button onclick="closeManualEntryModal()" class="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-200">キャンセル</button>
+                <button onclick="submitManualPunch()" class="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 shadow-sm">打刻を登録</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: Employee Add/Edit (従業員登録・編集) -->
+    <!-- MODAL: Employee Form (新規・編集従業員) -->
     <div id="modal-employee" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div class="flex items-center justify-between border-b pb-3">
                 <h3 id="employee-modal-title" class="font-bold text-slate-800 text-base flex items-center gap-2">
-                    <i data-lucide="user-plus" class="w-5 h-5 text-indigo-600"></i> 従業員の追加
+                    <i data-lucide="user-plus" class="w-5 h-5 text-indigo-600"></i> 従業員情報の登録・編集
                 </h3>
                 <button onclick="closeEmployeeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
@@ -513,234 +496,271 @@
             <div class="space-y-3 text-xs">
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">従業員ID (英数字)</label>
-                    <input type="text" id="emp-id" placeholder="EMP001" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono">
+                    <input type="text" id="emp-id" placeholder="例: EMP001" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">氏名</label>
                     <input type="text" id="emp-name" placeholder="山田 太郎" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
                 </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">部署 / 役職</label>
-                    <input type="text" id="emp-role" placeholder="開発部 / リーダー" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">役職</label>
+                        <input type="text" id="emp-role" placeholder="主任 / 一般" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">部署</label>
+                        <input type="text" id="emp-dept" placeholder="開発部 / 営業部" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                    </div>
                 </div>
             </div>
-            <div class="flex items-center justify-end space-x-2 pt-3 border-t">
-                <button onclick="closeEmployeeModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">キャンセル</button>
-                <button onclick="saveEmployee()" class="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm">保存</button>
+            <div class="flex justify-end gap-2 pt-2 border-t">
+                <button onclick="closeEmployeeModal()" class="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-200">キャンセル</button>
+                <button onclick="saveEmployee()" class="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 shadow-sm">保存</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: Bulk Employee Import (名簿一括登録) -->
+    <!-- MODAL: Bulk Import Employees -->
     <div id="modal-bulk-import" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div class="flex items-center justify-between border-b pb-3">
                 <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
-                    <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-600"></i> 従業員名簿の一括登録 (CSV/TSV)
+                    <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-600"></i> 従業員一括登録 (CSV/テキスト)
                 </h3>
                 <button onclick="closeBulkImportModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <div class="space-y-2 text-xs">
-                <p class="text-slate-500">Excelやスプレッドシートからコピーした列（従業員ID, 氏名, 役職）を貼り付けてください：</p>
-                <textarea id="bulk-import-text" rows="6" placeholder="EMP001&#09;山田 太郎&#09;開発部&#10;EMP002&#09;佐藤 典子&#09;営業部" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"></textarea>
-            </div>
-            <div class="flex items-center justify-end space-x-2 pt-3 border-t">
-                <button onclick="closeBulkImportModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">キャンセル</button>
-                <button onclick="processBulkImport()" class="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm">一括取り込み実行</button>
+            <p class="text-xs text-slate-500">1行に1人ずつ「ID, 氏名, 役職, 部署」の順でカンマ区切りで入力してください。</p>
+            <textarea id="bulk-import-text" rows="6" placeholder="EMP001,山田 太郎,一般,営業部&#10;EMP002,佐藤 花子,主任,開発部" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"></textarea>
+            <div class="flex justify-end gap-2 pt-2 border-t">
+                <button onclick="closeBulkImportModal()" class="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-200">キャンセル</button>
+                <button onclick="submitBulkImport()" class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 shadow-sm">一括登録を実行</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: Individual Timecard Detail -->
-    <div id="modal-timecard" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <!-- MODAL: Employee Monthly Detail Breakdown -->
+    <div id="modal-employee-monthly-detail" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
             <div class="flex items-center justify-between border-b pb-3 shrink-0">
                 <div>
-                    <h3 id="timecard-modal-title" class="font-bold text-slate-800 text-base flex items-center gap-2">
-                        <i data-lucide="calendar" class="w-5 h-5 text-indigo-600"></i> 個人別月次タイムカード明細
+                    <h3 id="monthly-detail-emp-name" class="font-bold text-slate-800 text-base flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-5 h-5 text-indigo-600"></i> 従業員月次勤務明細
                     </h3>
-                    <p id="timecard-modal-subtitle" class="text-xs text-slate-500 mt-0.5">---</p>
+                    <p id="monthly-detail-emp-subtitle" class="text-xs text-slate-500">----年--月</p>
                 </div>
-                <button onclick="closeTimecardModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <button onclick="closeMonthlyDetailModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-
-            <div id="timecard-modal-body" class="overflow-y-auto flex-1 space-y-3 pr-1">
-                <table class="w-full text-left text-xs text-slate-600 border border-slate-200 rounded-xl overflow-hidden">
-                    <thead class="bg-slate-100 text-slate-700 uppercase font-bold border-b border-slate-200">
+            
+            <div class="overflow-y-auto flex-1 border border-slate-200 rounded-xl">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-700 uppercase font-bold sticky top-0 border-b border-slate-200">
                         <tr>
                             <th class="px-3 py-2.5">日付</th>
-                            <th class="px-3 py-2.5 text-center">出勤時刻</th>
-                            <th class="px-3 py-2.5 text-center">退勤時刻</th>
+                            <th class="px-3 py-2.5">出勤時刻</th>
+                            <th class="px-3 py-2.5">退勤時刻</th>
                             <th class="px-3 py-2.5 text-right">実労働時間</th>
                             <th class="px-3 py-2.5 text-right text-amber-700">残業時間</th>
                         </tr>
                     </thead>
-                    <tbody id="timecard-table-body" class="divide-y divide-slate-100 font-mono"></tbody>
+                    <tbody id="monthly-detail-table-body" class="divide-y divide-slate-100 font-mono"></tbody>
                 </table>
             </div>
 
-            <div class="flex items-center justify-end space-x-2 pt-3 border-t shrink-0">
-                <button onclick="exportSingleTimecardCSV()" class="px-4 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-sm flex items-center gap-1.5">
-                    <i data-lucide="download" class="w-4 h-4"></i> このタイムカードをCSV出力
-                </button>
-                <button onclick="closeTimecardModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">閉じる</button>
+            <div class="flex justify-end shrink-0 pt-2 border-t">
+                <button onclick="closeMonthlyDetailModal()" class="px-4 py-2 bg-slate-800 text-white text-xs font-bold rounded-xl">閉じる</button>
             </div>
         </div>
     </div>
 
-    <!-- Printable QR Container (Hidden except in Print mode) -->
-    <div id="print-qr-container" class="print-only p-8 bg-white grid grid-cols-2 gap-6"></div>
+    <!-- MODAL: Custom Message / Alert replacement -->
+    <div id="modal-alert" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl text-center space-y-3">
+            <div id="alert-icon-container" class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto">
+                <i id="alert-icon" data-lucide="info" class="w-6 h-6"></i>
+            </div>
+            <h4 id="alert-title" class="font-bold text-slate-800 text-base">お知らせ</h4>
+            <p id="alert-message" class="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed">メッセージ</p>
+            <button onclick="closeAlertModal()" class="w-full py-2 bg-indigo-600 text-white font-bold text-xs rounded-xl shadow-sm hover:bg-indigo-700">OK</button>
+        </div>
+    </div>
 
-    <!-- Custom Notification Toast -->
-    <div id="app-toast" class="fixed top-20 right-5 z-50 bg-slate-800 text-white px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 transform translate-y-[-100px] opacity-0 transition-all duration-300 pointer-events-none text-xs">
-        <i data-lucide="info" class="w-4 h-4 text-indigo-400 shrink-0"></i>
-        <span id="toast-message">メッセージ</span>
+    <!-- PRINT CONTAINER (QR Card Print Template) -->
+    <div id="print-area" class="print-only p-8 bg-white">
+        <h1 class="text-2xl font-bold text-center mb-6 border-b pb-4">従業員QR出退勤カード一覧</h1>
+        <div id="print-cards-grid" class="grid grid-cols-2 gap-6"></div>
     </div>
 
     <script>
-        // Default Initial Employees Data
-        const DEFAULT_EMPLOYEES = [
-            { id: "EMP001", name: "山田 太郎", role: "開発部 / リーダー" },
-            { id: "EMP002", name: "佐藤 典子", role: "営業部 / アシスタント" },
-            { id: "EMP003", name: "高橋 健太", role: "総務部 / 主任" }
-        ];
-
-        // Global State Variable
         let state = {
-            employees: [],
+            employees: [
+                { id: 'EMP001', name: '山田 太郎', role: 'リーダー', dept: '開発部' },
+                { id: 'EMP002', name: '佐藤 花子', role: '一般', dept: '営業部' },
+                { id: 'EMP003', name: '鈴木 一郎', role: '主任', dept: '総務部' }
+            ],
             logs: [],
             settings: {
-                sound: true,
+                soundEnabled: true,
                 workStart: "08:10",
                 workEnd: "16:40",
                 webhookUrl: ""
             },
-            punchMode: "AUTO",
+            punchMode: 'AUTO', // AUTO, IN, OUT
+            manualPunchType: 'IN',
+            currentTab: 'kiosk',
             scanner: null,
+            cameras: [],
             activeCameraId: null,
-            isScanningCooldown: false,
-            currentTimecardContext: null
+            lastScanTime: 0,
+            lastScannedId: ''
         };
 
-        document.addEventListener("DOMContentLoaded", function() {
-            loadState();
-            setupClock();
-            switchTab('kiosk');
-            initCameraScanner();
-            renderLogsTable();
-            renderMonthlyOvertimeReport();
-            renderEmployeesGrid();
-            updateLogCountBadge();
-            updateTodayKioskStats();
-            
-            // Check HTTPS / Localhost context for camera
-            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-                const warnEl = document.getElementById('https-warning');
-                if (warnEl) warnEl.classList.remove('hidden');
-            }
-            
-            // Re-render Lucide icons
-            if (window.lucide) lucide.createIcons();
-        });
-
-        // Load State from LocalStorage
-        function loadState() {
-            try {
-                const savedEmployees = localStorage.getItem('qr_attendance_employees');
-                const savedLogs = localStorage.getItem('qr_attendance_logs');
-                const savedSettings = localStorage.getItem('qr_attendance_settings');
-
-                if (savedEmployees) {
-                    state.employees = JSON.parse(savedEmployees);
-                } else {
-                    state.employees = [...DEFAULT_EMPLOYEES];
-                }
-
-                if (savedLogs) {
-                    state.logs = JSON.parse(savedLogs);
-                } else {
-                    state.logs = [];
-                }
-
-                if (savedSettings) {
-                    state.settings = Object.assign(state.settings, JSON.parse(savedSettings));
-                }
-            } catch (e) {
-                console.error("Failed to load state from localStorage:", e);
-                state.employees = [...DEFAULT_EMPLOYEES];
-                state.logs = [];
-            }
-
-            // Sync settings to inputs
-            document.getElementById('setting-sound').checked = state.settings.sound;
-            document.getElementById('setting-work-start').value = state.settings.workStart;
-            document.getElementById('setting-work-end').value = state.settings.workEnd;
-            document.getElementById('setting-webhook-url').value = state.settings.webhookUrl || '';
+        // --- HELPER FUNCTIONS FOR LOCAL TIME PARSING ---
+        function getLocalDateStr(dateObj) {
+            const d = (dateObj instanceof Date && !isNaN(dateObj)) ? dateObj : new Date(dateObj);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
         }
 
-        // Save State to LocalStorage
-        function saveState() {
-            localStorage.setItem('qr_attendance_employees', JSON.stringify(state.employees));
+        function getLocalMonthStr(dateObj) {
+            const d = (dateObj instanceof Date && !isNaN(dateObj)) ? dateObj : new Date(dateObj);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            return `${y}-${m}`;
+        }
+
+        function getLocalTimeStr(dateObj) {
+            const d = (dateObj instanceof Date && !isNaN(dateObj)) ? dateObj : new Date(dateObj);
+            const h = String(d.getHours()).padStart(2, '0');
+            const m = String(d.getMinutes()).padStart(2, '0');
+            return `${h}:${m}`;
+        }
+
+        function getLocalDateTimeISO(dateObj = new Date()) {
+            const d = (dateObj instanceof Date && !isNaN(dateObj)) ? dateObj : new Date(dateObj);
+            return `${getLocalDateStr(d)}T${getLocalTimeStr(d)}:${String(d.getSeconds()).padStart(2, '0')}`;
+        }
+
+        function timeToMinutes(tStr) {
+            if (!tStr) return 0;
+            const parts = tStr.split(':');
+            return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+        }
+
+        // 分数を「○時間○分」の文字列に変換するヘルパー関数
+        function formatMinutesToHM(totalMinutes) {
+            if (!totalMinutes || totalMinutes <= 0) return '0時間0分';
+            const h = Math.floor(totalMinutes / 60);
+            const m = totalMinutes % 60;
+            return `${h}時間${m}分`;
+        }
+
+        // --- AUDIO SOUND GENERATOR (Web Audio API) ---
+        function playBeep(success = true) {
+            if (!state.settings.soundEnabled) return;
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = success ? 'sine' : 'sawtooth';
+                osc.frequency.setValueAtTime(success ? 880 : 300, ctx.currentTime);
+                if (success) {
+                    osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.15);
+                }
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + (success ? 0.2 : 0.4));
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + (success ? 0.2 : 0.4));
+            } catch (e) {
+                console.warn("Audio playback not supported or blocked", e);
+            }
+        }
+
+        function loadStateFromStorage() {
+            try {
+                const savedEmp = localStorage.getItem('qr_attendance_emp');
+                if (savedEmp) state.employees = JSON.parse(savedEmp);
+                const savedLogs = localStorage.getItem('qr_attendance_logs');
+                if (savedLogs) state.logs = JSON.parse(savedLogs);
+                const savedSet = localStorage.getItem('qr_attendance_settings');
+                if (savedSet) state.settings = { ...state.settings, ...JSON.parse(savedSet) };
+            } catch (e) {
+                console.error("Storage load error", e);
+            }
+            updateLogCountBadge();
+        }
+
+        function saveStateToStorage() {
+            localStorage.setItem('qr_attendance_emp', JSON.stringify(state.employees));
             localStorage.setItem('qr_attendance_logs', JSON.stringify(state.logs));
             localStorage.setItem('qr_attendance_settings', JSON.stringify(state.settings));
             updateLogCountBadge();
         }
 
-        function saveSettings() {
-            state.settings.sound = document.getElementById('setting-sound').checked;
-            state.settings.workStart = document.getElementById('setting-work-start').value || "08:10";
-            state.settings.workEnd = document.getElementById('setting-work-end').value || "16:40";
-            state.settings.webhookUrl = document.getElementById('setting-webhook-url').value.trim();
-            saveState();
-            renderMonthlyOvertimeReport();
-            showToast("設定を保存しました");
-        }
-
         function updateLogCountBadge() {
             const badge = document.getElementById('log-count-badge');
-            if (badge) {
-                badge.textContent = `総打刻数: ${state.logs.length}件`;
-            }
+            if (badge) badge.textContent = `総打刻数: ${state.logs.length}件`;
         }
 
-        // Navigation Tab Switching
-        function switchTab(tabName) {
+        function showAlert(title, message, icon = 'info') {
+            document.getElementById('alert-title').textContent = title;
+            document.getElementById('alert-message').textContent = message;
+            document.getElementById('modal-alert').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeAlertModal() {
+            document.getElementById('modal-alert').classList.add('hidden');
+        }
+
+        function switchTab(tabId) {
+            state.currentTab = tabId;
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('bg-indigo-700', 'text-white');
                 btn.classList.add('text-indigo-200');
             });
 
-            const selectedTab = document.getElementById(`tab-${tabName}`);
-            const selectedBtn = document.getElementById(`tab-btn-${tabName}`);
+            const activeTab = document.getElementById(`tab-${tabId}`);
+            if (activeTab) activeTab.classList.remove('hidden');
 
-            if (selectedTab) selectedTab.classList.remove('hidden');
-            if (selectedBtn) {
-                selectedBtn.classList.add('bg-indigo-700', 'text-white');
-                selectedBtn.classList.remove('text-indigo-200');
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-indigo-700', 'text-white');
+                activeBtn.classList.remove('text-indigo-200');
             }
 
-            if (tabName === 'logs') renderLogsTable();
-            if (tabName === 'monthly') renderMonthlyOvertimeReport();
-            if (tabName === 'employees') renderEmployeesGrid();
+            if (tabId === 'kiosk') {
+                startScanner();
+            } else {
+                stopScanner();
+            }
+
+            if (tabId === 'logs') renderLogsTable();
+            if (tabId === 'monthly') renderMonthlyOvertimeReport();
+            if (tabId === 'employees') renderEmployeesGrid();
+            if (tabId === 'settings') renderSettingsView();
+
+            lucide.createIcons();
         }
 
-        function setupClock() {
-            function update() {
-                const now = new Date();
-                const timeStr = now.toTimeString().split(' ')[0];
-                const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日(${['日','月','火','水','木','金','土'][now.getDay()]})`;
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+            const days = ['日', '月', '火', '水', '木', '金', '土'];
+            const dateStr = `${now.getFullYear()}年${String(now.getMonth()+1).padStart(2,'0')}月${String(now.getDate()).padStart(2,'0')}日(${days[now.getDay()]})`;
+            
+            const navClock = document.getElementById('nav-clock');
+            if (navClock) navClock.textContent = timeStr;
 
-                const navClock = document.getElementById('nav-clock');
-                const kioskClock = document.getElementById('kiosk-clock');
-                const kioskDate = document.getElementById('kiosk-date');
+            const kioskClock = document.getElementById('kiosk-clock');
+            if (kioskClock) kioskClock.textContent = timeStr;
 
-                if (navClock) navClock.textContent = timeStr;
-                if (kioskClock) kioskClock.textContent = timeStr;
-                if (kioskDate) kioskDate.textContent = dateStr;
-            }
-            update();
-            setInterval(update, 1000);
+            const kioskDate = document.getElementById('kiosk-date');
+            if (kioskDate) kioskDate.textContent = dateStr;
         }
 
         function setPunchMode(mode) {
@@ -749,919 +769,715 @@
                 btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm', 'font-bold');
                 btn.classList.add('text-slate-600');
             });
-            const activeBtn = document.getElementById(`mode-${mode}`);
-            if (activeBtn) {
-                activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm', 'font-bold');
-                activeBtn.classList.remove('text-slate-600');
+            const active = document.getElementById(`mode-${mode}`);
+            if (active) {
+                active.classList.add('bg-indigo-600', 'text-white', 'shadow-sm', 'font-bold');
+                active.classList.remove('text-slate-600');
             }
 
             const desc = document.getElementById('mode-description');
             if (desc) {
                 if (mode === 'AUTO') desc.textContent = '※ 本日の1回目は出勤、2回目は退勤として自動記録します';
-                else if (mode === 'IN') desc.textContent = '※ 強制「出勤」モード';
-                else if (mode === 'OUT') desc.textContent = '※ 強制「退勤」モード';
+                if (mode === 'IN') desc.textContent = '※ スキャン時「出勤」として優先打刻します';
+                if (mode === 'OUT') desc.textContent = '※ スキャン時「退勤」として優先打刻します';
             }
         }
 
-        function initCameraScanner() {
-            if (!window.Html5Qrcode) return;
+        function startScanner() {
+            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                const warn = document.getElementById('https-warning');
+                if (warn) warn.classList.remove('hidden');
+            }
+
+            if (state.scanner) return;
 
             Html5Qrcode.getCameras().then(devices => {
+                state.cameras = devices;
                 const select = document.getElementById('camera-select');
-                if (!select) return;
-                select.innerHTML = '';
-                if (devices && devices.length > 0) {
-                    devices.forEach((device, index) => {
+                if (select) {
+                    select.innerHTML = '';
+                    if (devices.length === 0) {
+                        select.innerHTML = '<option value="">利用可能なカメラがありません</option>';
+                        return;
+                    }
+                    devices.forEach(dev => {
                         const opt = document.createElement('option');
-                        opt.value = device.id;
-                        opt.textContent = device.label || `カメラ ${index + 1}`;
+                        opt.value = dev.id;
+                        opt.textContent = dev.label || `カメラ ${dev.id.substring(0,6)}`;
                         select.appendChild(opt);
                     });
+                }
+
+                if (devices.length > 0) {
                     state.activeCameraId = devices[0].id;
-                    startCamera(devices[0].id);
-                } else {
-                    select.innerHTML = '<option value="">利用可能なカメラが見つかりません</option>';
+                    initHtml5Qrcode(state.activeCameraId);
                 }
             }).catch(err => {
-                console.warn("Camera init error:", err);
-                const select = document.getElementById('camera-select');
-                if (select) select.innerHTML = '<option value="">カメラ非検出/アクセス制限</option>';
+                console.warn("Camera enum error", err);
             });
         }
 
-        function startCamera(cameraId) {
-            if (!window.Html5Qrcode) return;
+        function initHtml5Qrcode(cameraId) {
             if (state.scanner) {
                 state.scanner.stop().then(() => {
-                    attachCamera(cameraId);
+                    state.scanner = null;
+                    initHtml5Qrcode(cameraId);
                 }).catch(() => {
-                    attachCamera(cameraId);
+                    state.scanner = null;
+                    initHtml5Qrcode(cameraId);
                 });
-            } else {
-                attachCamera(cameraId);
+                return;
             }
-        }
 
-        function attachCamera(cameraId) {
-            const html5QrCode = new Html5Qrcode("reader");
-            state.scanner = html5QrCode;
+            const scanner = new Html5Qrcode("reader");
+            state.scanner = scanner;
+
             const config = { fps: 10, qrbox: { width: 220, height: 220 } };
-
-            html5QrCode.start(
+            scanner.start(
                 cameraId,
                 config,
-                (decodedText) => {
-                    handleQrScanSuccess(decodedText);
-                },
-                () => {}
+                (decodedText) => onQrCodeScanned(decodedText),
+                (errorMessage) => {}
             ).catch(err => {
-                console.error("Camera start failed:", err);
+                console.error("Scanner start error", err);
             });
+        }
+
+        function switchCameraDevice(cameraId) {
+            if (!cameraId) return;
+            state.activeCameraId = cameraId;
+            initHtml5Qrcode(cameraId);
         }
 
         function toggleCamera() {
-            if (!state.scanner) return;
-            if (state.scanner.isScanning) {
-                state.scanner.stop().then(() => showToast("カメラをオフにしました"));
-            } else if (state.activeCameraId) {
-                startCamera(state.activeCameraId);
-                showToast("カメラをオンにしました");
-            }
-        }
-
-        function switchCameraDevice(deviceId) {
-            if (!deviceId) return;
-            state.activeCameraId = deviceId;
-            startCamera(deviceId);
-        }
-
-        // Web Audio API Synthesizer Sound
-        function playBeepSound(isSuccess = true) {
-            if (!state.settings.sound) return;
-            try {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                if (!AudioContext) return;
-                const ctx = new AudioContext();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-
-                osc.type = isSuccess ? 'sine' : 'sawtooth';
-                osc.frequency.setValueAtTime(isSuccess ? 880 : 300, ctx.currentTime);
-                if (isSuccess) {
-                    osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.15);
+            if (state.scanner) {
+                state.scanner.stop().then(() => {
+                    state.scanner = null;
+                    document.getElementById('camera-status-text').textContent = "カメラ起動";
+                });
+            } else {
+                if (state.activeCameraId) {
+                    initHtml5Qrcode(state.activeCameraId);
+                    document.getElementById('camera-status-text').textContent = "カメラ停止";
+                } else {
+                    startScanner();
                 }
-                gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
-
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-
-                osc.start();
-                osc.stop(ctx.currentTime + 0.25);
-            } catch (e) {
-                console.warn("Audio exception:", e);
             }
         }
 
-        // Handle Scan Event
-        function handleQrScanSuccess(qrText) {
-            if (state.isScanningCooldown) return;
-            state.isScanningCooldown = true;
-            setTimeout(() => { state.isScanningCooldown = false; }, 2500);
+        function stopScanner() {
+            if (state.scanner) {
+                state.scanner.stop().then(() => {
+                    state.scanner = null;
+                }).catch(() => { state.scanner = null; });
+            }
+        }
 
-            let empId = qrText.trim();
-            try {
-                const parsed = JSON.parse(qrText);
-                if (parsed.id) empId = parsed.id;
-            } catch (e) {}
+        function onQrCodeScanned(rawCode) {
+            const now = Date.now();
+            if (rawCode === state.lastScannedId && (now - state.lastScanTime) < 3000) return;
 
-            const employee = state.employees.find(e => e.id === empId);
+            state.lastScanTime = now;
+            state.lastScannedId = rawCode;
+
+            const codeClean = rawCode.trim();
+            const employee = state.employees.find(e => e.id === codeClean || e.name === codeClean);
+
             if (!employee) {
-                playBeepSound(false);
-                showToast(`エラー: ID [${empId}] の従業員が登録されていません`);
+                playBeep(false);
+                showAlert("未登録エラー", `QRコード「${codeClean}」は従業員名簿に登録されていません。`);
                 return;
             }
 
-            const now = new Date();
-            const dateStr = getFormattedDateStr(now);
-            const timeStr = now.toTimeString().split(' ')[0];
-
-            // Determine punch mode
             let punchType = state.punchMode;
-            if (punchType === 'AUTO') {
-                const todayLogs = state.logs.filter(l => l.employeeId === employee.id && l.date === dateStr);
-                const hasIn = todayLogs.some(l => l.type === 'IN');
-                punchType = hasIn ? 'OUT' : 'IN';
+            const todayStr = getLocalDateStr(new Date());
+            const empTodayLogs = state.logs.filter(l => l.empId === employee.id && getLocalDateStr(l.timestamp) === todayStr);
+
+            if (state.punchMode === 'AUTO') {
+                if (empTodayLogs.length === 0) {
+                    punchType = 'IN';
+                } else {
+                    const lastType = empTodayLogs[0].type;
+                    punchType = (lastType === 'IN') ? 'OUT' : 'IN';
+                }
             }
 
-            const newLog = {
-                id: Date.now().toString(),
-                employeeId: employee.id,
+            const logEntry = {
+                id: 'LOG_' + Date.now(),
+                empId: employee.id,
                 name: employee.name,
-                role: employee.role,
-                date: dateStr,
-                time: timeStr,
+                role: employee.role || '一般',
+                dept: employee.dept || '未設定',
                 type: punchType,
-                method: 'QR'
+                timestamp: getLocalDateTimeISO(new Date()),
+                method: 'QR',
+                note: ''
             };
 
-            state.logs.unshift(newLog);
-            saveState();
-            playBeepSound(true);
-            showScanToastFeedback(newLog);
-            updateTodayKioskStats();
-            postLogToWebhook(newLog);
+            state.logs.unshift(logEntry);
+            saveStateToStorage();
+            playBeep(true);
+            showScanToast(employee.name, punchType, new Date());
+            syncLogToGAS(logEntry);
         }
 
-        function showScanToastFeedback(log) {
-            const feedbackEl = document.getElementById('scan-feedback');
-            const typeEl = document.getElementById('feedback-type');
-            const nameEl = document.getElementById('feedback-name');
-            const timeEl = document.getElementById('feedback-time');
+        function showScanToast(empName, type, dateObj) {
+            const toast = document.getElementById('scan-feedback');
+            const typeLabel = document.getElementById('feedback-type');
+            const nameLabel = document.getElementById('feedback-name');
+            const timeLabel = document.getElementById('feedback-time');
 
-            if (!feedbackEl) return;
+            typeLabel.textContent = type === 'IN' ? '【出勤完了】' : '【退勤完了】';
+            nameLabel.textContent = empName;
+            timeLabel.textContent = `${dateObj.toTimeString().split(' ')[0]} 打刻完了`;
 
-            typeEl.textContent = log.type === 'IN' ? '出勤 完了' : '退勤 完了';
-            nameEl.textContent = log.name;
-            timeEl.textContent = `${log.time} 打刻完了`;
+            toast.classList.remove('translate-y-32', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
 
-            feedbackEl.classList.remove('translate-y-32', 'opacity-0');
             setTimeout(() => {
-                feedbackEl.classList.add('translate-y-32', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-32', 'opacity-0');
             }, 2500);
         }
 
-        function updateTodayKioskStats() {
-            const todayStr = getFormattedDateStr(new Date());
-            const todayLogs = state.logs.filter(l => l.date === todayStr);
-
-            const inSet = new Set(todayLogs.filter(l => l.type === 'IN').map(l => l.employeeId));
-            const outSet = new Set(todayLogs.filter(l => l.type === 'OUT').map(l => l.employeeId));
-
-            document.getElementById('stat-today-in').textContent = `${inSet.size}名`;
-            document.getElementById('stat-today-out').textContent = `${outSet.size}名`;
-        }
-
-        function postLogToWebhook(logData) {
-            if (!state.settings.webhookUrl) return;
-            try {
-                fetch(state.settings.webhookUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(logData)
-                }).catch(err => console.warn("Webhook failed:", err));
-            } catch (e) {
-                console.warn("Webhook fetch exception:", e);
-            }
-        }
-
         function renderLogsTable() {
-            const tbody = document.getElementById('logs-table-body');
-            if (!tbody) return;
-
             const filterDate = document.getElementById('filter-date').value;
             const filterRole = document.getElementById('filter-role').value;
-            const filterKeyword = (document.getElementById('filter-keyword').value || '').toLowerCase();
+            const filterKeyword = document.getElementById('filter-keyword').value.toLowerCase();
 
-            // Dynamic roles filter options update
             const roleSelect = document.getElementById('filter-role');
-            const roles = Array.from(new Set(state.employees.map(e => e.role).filter(Boolean)));
-            let roleOpts = `<option value="ALL">全ての役職</option>`;
+            const roles = [...new Set(state.employees.map(e => e.role).filter(Boolean))];
+            let roleOpts = '<option value="ALL">全ての役職</option>';
             roles.forEach(r => {
-                roleOpts += `<option value="${escapeHtml(r)}" ${filterRole === r ? 'selected' : ''}>${escapeHtml(r)}</option>`;
+                roleOpts += `<option value="${r}" ${filterRole === r ? 'selected' : ''}>${r}</option>`;
             });
             roleSelect.innerHTML = roleOpts;
 
-            let filtered = state.logs;
+            const tbody = document.getElementById('logs-table-body');
+            tbody.innerHTML = '';
 
-            if (filterDate) {
-                filtered = filtered.filter(l => l.date === filterDate);
-            }
-            if (filterRole && filterRole !== 'ALL') {
-                filtered = filtered.filter(l => l.role === filterRole);
-            }
-            if (filterKeyword) {
-                filtered = filtered.filter(l => 
-                    l.name.toLowerCase().includes(filterKeyword) || 
-                    l.employeeId.toLowerCase().includes(filterKeyword)
-                );
-            }
+            let filtered = state.logs.filter(l => {
+                const logLocalDate = getLocalDateStr(l.timestamp);
+                if (filterDate && logLocalDate !== filterDate) return false;
+                if (filterRole !== 'ALL' && l.role !== filterRole) return false;
+                if (filterKeyword) {
+                    const matchName = l.name.toLowerCase().includes(filterKeyword);
+                    const matchId = l.empId.toLowerCase().includes(filterKeyword);
+                    if (!matchName && !matchId) return false;
+                }
+                return true;
+            });
 
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">該当する打刻データがありません</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">打刻履歴データがありません</td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = filtered.map((log, index) => {
-                const originalIndex = state.logs.findIndex(l => l.id === log.id);
-                return `
-                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                        <td class="px-4 py-3.5 font-mono text-xs text-slate-800">${log.date} ${log.time}</td>
-                        <td class="px-4 py-3.5 font-mono text-xs font-bold text-indigo-900">${escapeHtml(log.employeeId)}</td>
-                        <td class="px-4 py-3.5 font-bold text-slate-800">${escapeHtml(log.name)}</td>
-                        <td class="px-4 py-3.5 text-xs text-slate-500">${escapeHtml(log.role || '-')}</td>
-                        <td class="px-4 py-3.5">
-                            <span class="px-2.5 py-1 rounded-full text-xs font-bold ${log.type === 'IN' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
-                                ${log.type === 'IN' ? '出勤' : '退勤'}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3.5 text-xs text-slate-400 font-medium">${log.method || 'QR'}</td>
-                        <td class="px-4 py-3.5 text-right">
-                            <button onclick="deleteLogEntry(${originalIndex})" class="text-rose-600 hover:text-rose-800 font-medium text-xs">削除</button>
-                        </td>
-                    </tr>
+            filtered.forEach(l => {
+                const d = new Date(l.timestamp);
+                const dateFormatted = `${getLocalDateStr(d)} ${getLocalTimeStr(d)}:${String(d.getSeconds()).padStart(2,'0')}`;
+                
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-mono text-xs text-slate-700">${dateFormatted}</td>
+                    <td class="px-4 py-3 font-mono font-semibold text-xs text-slate-800">${l.empId}</td>
+                    <td class="px-4 py-3 font-bold text-slate-800">${l.name}</td>
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs">${l.role || '一般'}</span></td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 rounded-lg text-xs font-bold ${l.type === 'IN' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                            ${l.type === 'IN' ? '出勤' : '退勤'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-xs text-slate-500">${l.note || '-'}</td>
+                    <td class="px-4 py-3 text-right">
+                        <button onclick="deleteLogEntry('${l.id}')" class="text-rose-500 hover:text-rose-700 text-xs font-semibold px-2 py-1 rounded hover:bg-rose-50 transition">
+                            削除
+                        </button>
+                    </td>
                 `;
-            }).join('');
+                tbody.appendChild(tr);
+            });
         }
 
-        // Render Monthly Overtime Report
+        function deleteLogEntry(logId) {
+            state.logs = state.logs.filter(l => l.id !== logId);
+            saveStateToStorage();
+            renderLogsTable();
+        }
+
         function renderMonthlyOvertimeReport() {
             const monthInput = document.getElementById('monthly-select-month');
-            if (!monthInput.value) {
-                const now = new Date();
-                monthInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            }
+            if (!monthInput.value) monthInput.value = getLocalMonthStr(new Date());
 
             const targetMonthStr = monthInput.value;
-            document.getElementById('monthly-report-period-text').textContent = `${targetMonthStr} 月次実績`;
+            document.getElementById('monthly-report-period-text').textContent = `${targetMonthStr}度 集計`;
 
             const tbody = document.getElementById('monthly-report-table-body');
-            if (!tbody) return;
+            tbody.innerHTML = '';
 
-            const monthlyLogs = state.logs.filter(l => l.date && l.date.startsWith(targetMonthStr));
+            const reportData = {};
+            state.employees.forEach(emp => {
+                reportData[emp.id] = { id: emp.id, name: emp.name, role: emp.role || '一般', daysCount: 0, totalWorkMinutes: 0, totalOvertimeMinutes: 0, dailyBreakdown: {} };
+            });
 
-            let globalTotalWorkMinutes = 0;
-            let globalTotalOvertimeMinutes = 0;
+            const monthLogs = state.logs.filter(l => getLocalMonthStr(l.timestamp) === targetMonthStr);
+            monthLogs.forEach(log => {
+                if (!reportData[log.empId]) {
+                    reportData[log.empId] = { id: log.empId, name: log.name, role: log.role || '一般', daysCount: 0, totalWorkMinutes: 0, totalOvertimeMinutes: 0, dailyBreakdown: {} };
+                }
+                const dateKey = getLocalDateStr(log.timestamp);
+                if (!reportData[log.empId].dailyBreakdown[dateKey]) reportData[log.empId].dailyBreakdown[dateKey] = { in: null, out: null };
+                const timeStr = getLocalTimeStr(log.timestamp);
+                if (log.type === 'IN') {
+                    if (!reportData[log.empId].dailyBreakdown[dateKey].in || timeStr < reportData[log.empId].dailyBreakdown[dateKey].in) reportData[log.empId].dailyBreakdown[dateKey].in = timeStr;
+                } else if (log.type === 'OUT') {
+                    if (!reportData[log.empId].dailyBreakdown[dateKey].out || timeStr > reportData[log.empId].dailyBreakdown[dateKey].out) reportData[log.empId].dailyBreakdown[dateKey].out = timeStr;
+                }
+            });
 
-            const rowsHtml = state.employees.map(emp => {
-                const empLogs = monthlyLogs.filter(l => l.employeeId === emp.id);
+            const workStartSetting = timeToMinutes(state.settings.workStart || "08:10");
+            const workEndSetting = timeToMinutes(state.settings.workEnd || "16:40");
 
-                const dateMap = {};
-                empLogs.forEach(l => {
-                    if (!dateMap[l.date]) dateMap[l.date] = {};
-                    if (l.type === 'IN' && !dateMap[l.date].in) dateMap[l.date].in = l.time;
-                    if (l.type === 'OUT') dateMap[l.date].out = l.time;
-                });
+            let grandTotalWorkMins = 0;
+            let grandTotalOvertimeMins = 0;
+            let activeEmpCount = 0;
 
-                let workedDays = 0;
-                let totalWorkMinutes = 0;
-                let totalOvertimeMinutes = 0;
+            Object.values(reportData).forEach(empData => {
+                const dates = Object.keys(empData.dailyBreakdown);
+                empData.daysCount = dates.length;
+                if (empData.daysCount > 0) activeEmpCount++;
 
-                const [stdEndH, stdEndM] = state.settings.workEnd.split(':').map(Number);
-                const stdEndMinutes = stdEndH * 60 + stdEndM;
+                dates.forEach(d => {
+                    const day = empData.dailyBreakdown[d];
+                    if (day.in && day.out) {
+                        const inM = timeToMinutes(day.in);
+                        const outM = timeToMinutes(day.out);
+                        let duration = Math.max(0, outM - inM);
+                        if (duration > 360) duration -= 60; // Lunch break
+                        empData.totalWorkMinutes += duration;
 
-                Object.keys(dateMap).forEach(date => {
-                    const rec = dateMap[date];
-                    if (rec.in) {
-                        workedDays++;
-                        if (rec.out) {
-                            const [inH, inM] = rec.in.split(':').map(Number);
-                            const [outH, outM] = rec.out.split(':').map(Number);
-
-                            const inTotalM = inH * 60 + inM;
-                            const outTotalM = outH * 60 + outM;
-
-                            let duration = outTotalM - inTotalM;
-                            if (duration > 360) duration -= 60; // Deduct 1h break if > 6 hours
-                            if (duration > 0) totalWorkMinutes += duration;
-
-                            if (outTotalM > stdEndMinutes) {
-                                totalOvertimeMinutes += (outTotalM - stdEndMinutes);
-                            }
-                        }
+                        // Overtime = (StartScheduled - InTime) + (OutTime - EndScheduled)
+                        let overtime = Math.max(0, workStartSetting - inM) + Math.max(0, outM - workEndSetting);
+                        empData.totalOvertimeMinutes += overtime;
                     }
                 });
 
-                globalTotalWorkMinutes += totalWorkMinutes;
-                globalTotalOvertimeMinutes += totalOvertimeMinutes;
+                grandTotalWorkMins += empData.totalWorkMinutes;
+                grandTotalOvertimeMins += empData.totalOvertimeMinutes;
 
-                const totalHoursStr = (totalWorkMinutes / 60).toFixed(1);
-                const otHours = Math.floor(totalOvertimeMinutes / 60);
-                const otMins = totalOvertimeMinutes % 60;
-                const overtimeStr = `${otHours}時間 ${otMins}分`;
+                const workHoursStr = (empData.totalWorkMinutes / 60).toFixed(1) + ' 時間';
+                const otStr = formatMinutesToHM(empData.totalOvertimeMinutes);
 
-                let statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">正常</span>`;
-                if (otHours >= 80) {
-                    statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 flex items-center justify-center gap-1"><i data-lucide="alert-octagon" class="w-3 h-3"></i> 過重労働警戒 (80h超)</span>`;
-                } else if (otHours >= 45) {
-                    statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 flex items-center justify-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> 残業注意 (45h超)</span>`;
-                }
+                let alertBadge = `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full">正常</span>`;
+                if (empData.totalOvertimeMinutes >= 80 * 60) alertBadge = `<span class="px-2 py-0.5 bg-rose-100 text-rose-800 text-xs font-bold rounded-full animate-pulse">過労死ライン警戒</span>`;
+                else if (empData.totalOvertimeMinutes >= 45 * 60) alertBadge = `<span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">36協定注意</span>`;
 
-                return `
-                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                        <td class="px-4 py-3.5 font-mono text-xs font-bold">${escapeHtml(emp.id)}</td>
-                        <td class="px-4 py-3.5 font-bold text-slate-800">${escapeHtml(emp.name)}</td>
-                        <td class="px-4 py-3.5 text-xs text-slate-500">${escapeHtml(emp.role)}</td>
-                        <td class="px-4 py-3.5 text-center font-bold">${workedDays} 日</td>
-                        <td class="px-4 py-3.5 text-right font-mono font-bold text-slate-700">${totalHoursStr} h</td>
-                        <td class="px-4 py-3.5 text-right font-mono font-bold text-amber-700">${overtimeStr}</td>
-                        <td class="px-4 py-3.5 text-center">${statusBadge}</td>
-                        <td class="px-4 py-3.5 text-center">
-                            <button onclick="openTimecardModal('${escapeHtml(emp.id)}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg font-bold text-xs transition border border-indigo-200">
-                                明細
-                            </button>
-                        </td>
-                    </tr>
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="px-4 py-3.5 font-mono font-semibold text-slate-800">${empData.id}</td>
+                    <td class="px-4 py-3.5 font-bold text-slate-800">${empData.name}</td>
+                    <td class="px-4 py-3.5 text-xs"><span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded">${empData.role}</span></td>
+                    <td class="px-4 py-3.5 text-center font-semibold text-slate-700">${empData.daysCount} 日</td>
+                    <td class="px-4 py-3.5 text-right font-mono font-bold text-slate-800">${workHoursStr}</td>
+                    <td class="px-4 py-3.5 text-right font-mono font-black text-amber-600">${otStr}</td>
+                    <td class="px-4 py-3.5 text-center">${alertBadge}</td>
+                    <td class="px-4 py-3.5 text-center">
+                        <button onclick="openMonthlyDetailModal('${empData.id}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-lg transition">
+                            明細表示
+                        </button>
+                    </td>
                 `;
-            }).join('');
+                tbody.appendChild(tr);
+            });
 
-            tbody.innerHTML = rowsHtml || `<tr><td colspan="8" class="py-8 text-center text-slate-400">従業員が登録されていません</td></tr>`;
+            document.getElementById('kpi-monthly-count').textContent = `${state.employees.length} 名 (${activeEmpCount}名出勤)`;
+            document.getElementById('kpi-monthly-total-work').textContent = `${(grandTotalWorkMins / 60).toFixed(1)} 時間`;
+            document.getElementById('kpi-monthly-total-overtime').textContent = formatMinutesToHM(grandTotalOvertimeMins);
+        }
 
-            document.getElementById('kpi-monthly-count').textContent = `${state.employees.length} 名`;
-            document.getElementById('kpi-monthly-total-work').textContent = `${(globalTotalWorkMinutes / 60).toFixed(1)} 時間`;
+        function openMonthlyDetailModal(empId) {
+            const emp = state.employees.find(e => e.id === empId);
+            const targetMonthStr = document.getElementById('monthly-select-month').value || getLocalMonthStr(new Date());
+            document.getElementById('monthly-detail-emp-name').textContent = `${emp ? emp.name : empId} の勤務明細`;
+            document.getElementById('monthly-detail-emp-subtitle').textContent = `${targetMonthStr}度 日別実績`;
 
-            const gOtH = Math.floor(globalTotalOvertimeMinutes / 60);
-            const gOtM = globalTotalOvertimeMinutes % 60;
-            document.getElementById('kpi-monthly-total-overtime').textContent = `${gOtH} 時間 ${gOtM} 分`;
+            const tbody = document.getElementById('monthly-detail-table-body');
+            tbody.innerHTML = '';
 
-            if (window.lucide) lucide.createIcons();
+            const logs = state.logs.filter(l => l.empId === empId && getLocalMonthStr(l.timestamp) === targetMonthStr);
+            const daysMap = {};
+            logs.forEach(log => {
+                const d = getLocalDateStr(log.timestamp);
+                if (!daysMap[d]) daysMap[d] = { in: null, out: null };
+                const time = getLocalTimeStr(log.timestamp);
+                if (log.type === 'IN') { if (!daysMap[d].in || time < daysMap[d].in) daysMap[d].in = time; }
+                else { if (!daysMap[d].out || time > daysMap[d].out) daysMap[d].out = time; }
+            });
+
+            const sortedDates = Object.keys(daysMap).sort();
+            if (sortedDates.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">期間内の打刻データがありません</td></tr>`;
+            } else {
+                const workStartMins = timeToMinutes(state.settings.workStart || "08:10");
+                const workEndMins = timeToMinutes(state.settings.workEnd || "16:40");
+
+                sortedDates.forEach(d => {
+                    const row = daysMap[d];
+                    let durationStr = "-";
+                    let otStr = "-";
+
+                    if (row.in && row.out) {
+                        const inMins = timeToMinutes(row.in);
+                        const outMins = timeToMinutes(row.out);
+                        let dur = Math.max(0, outMins - inMins);
+                        if (dur > 360) dur -= 60; // lunch break
+                        durationStr = `${(dur/60).toFixed(1)} 時間`;
+
+                        let ot = Math.max(0, workStartMins - inMins) + Math.max(0, outMins - workEndMins);
+                        otStr = formatMinutesToHM(ot);
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50";
+                    tr.innerHTML = `
+                        <td class="px-3 py-2 font-bold text-slate-700">${d}</td>
+                        <td class="px-3 py-2 text-emerald-700 font-bold">${row.in || '-'}</td>
+                        <td class="px-3 py-2 text-amber-700 font-bold">${row.out || '-'}</td>
+                        <td class="px-3 py-2 text-right">${durationStr}</td>
+                        <td class="px-3 py-2 text-right font-bold text-amber-600">${otStr}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('modal-employee-monthly-detail').classList.remove('hidden');
+        }
+
+        function closeMonthlyDetailModal() {
+            document.getElementById('modal-employee-monthly-detail').classList.add('hidden');
         }
 
         function renderEmployeesGrid() {
             const grid = document.getElementById('employees-grid');
-            if (!grid) return;
-
-            grid.innerHTML = state.employees.map(emp => `
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-between space-y-4">
-                    <div class="text-center">
-                        <span class="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">${escapeHtml(emp.id)}</span>
-                        <h3 class="font-bold text-slate-800 text-base mt-1">${escapeHtml(emp.name)}</h3>
-                        <p class="text-xs text-slate-500">${escapeHtml(emp.role || '役職未設定')}</p>
-                    </div>
-
-                    <div id="qr-target-${emp.id}" class="p-2 bg-white rounded-xl shadow-inner border border-slate-100"></div>
-
-                    <div class="flex items-center space-x-2 w-full pt-2 border-t border-slate-100">
-                        <button onclick="openEmployeeModal('${escapeHtml(emp.id)}')" class="flex-1 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition">
-                            編集
-                        </button>
-                        <button onclick="deleteEmployee('${escapeHtml(emp.id)}')" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-xl transition">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-
-            // Generate QR codes for each card
-            setTimeout(() => {
-                state.employees.forEach(emp => {
-                    const target = document.getElementById(`qr-target-${emp.id}`);
-                    if (target) {
-                        target.innerHTML = '';
-                        new QRCode(target, {
-                            text: emp.id,
-                            width: 100,
-                            height: 100,
-                            colorDark: "#1e1b4b",
-                            colorLight: "#ffffff"
-                        });
-                    }
-                });
-                if (window.lucide) lucide.createIcons();
-            }, 50);
-        }
-
-        // Timecard Modal Handler
-        function openTimecardModal(employeeId) {
-            const emp = state.employees.find(e => e.id === employeeId);
-            if (!emp) return;
-
-            const targetMonthStr = document.getElementById('monthly-select-month').value;
-            state.currentTimecardContext = { employee: emp, month: targetMonthStr };
-
-            document.getElementById('timecard-modal-title').innerHTML = `<i data-lucide="calendar" class="w-5 h-5 text-indigo-600"></i> ${escapeHtml(emp.name)} さんの月次タイムカード明細`;
-            document.getElementById('timecard-modal-subtitle').textContent = `従業員ID: ${emp.id} | 対象月: ${targetMonthStr}`;
-
-            const tbody = document.getElementById('timecard-table-body');
-            tbody.innerHTML = '';
-
-            const [year, month] = targetMonthStr.split('-').map(Number);
-            const daysInMonth = new Date(year, month, 0).getDate();
-            const monthLogs = state.logs.filter(l => l.employeeId === emp.id && l.date && l.date.startsWith(targetMonthStr));
-
-            const [stdEndH, stdEndM] = state.settings.workEnd.split(':').map(Number);
-            const stdEndMinutes = stdEndH * 60 + stdEndM;
-
-            let html = '';
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dayStr = `${targetMonthStr}-${String(d).padStart(2, '0')}`;
-                const dateObj = new Date(year, month - 1, d);
-                const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()];
-                const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-
-                const dayLogs = monthLogs.filter(l => l.date === dayStr);
-                const inLog = dayLogs.find(l => l.type === 'IN');
-                const outLogs = dayLogs.filter(l => l.type === 'OUT');
-                const outLog = outLogs.length > 0 ? outLogs[outLogs.length - 1] : null;
-
-                let workStr = '-';
-                let otStr = '-';
-
-                if (inLog && outLog) {
-                    const [inH, inM] = inLog.time.split(':').map(Number);
-                    const [outH, outM] = outLog.time.split(':').map(Number);
-
-                    let duration = (outH * 60 + outM) - (inH * 60 + inM);
-                    if (duration > 360) duration -= 60;
-                    if (duration > 0) workStr = `${(duration / 60).toFixed(1)} h`;
-
-                    if ((outH * 60 + outM) > stdEndMinutes) {
-                        const otMins = (outH * 60 + outM) - stdEndMinutes;
-                        otStr = `${Math.floor(otMins / 60)}h ${otMins % 60}m`;
-                    }
-                }
-
-                html += `
-                    <tr class="${isWeekend ? 'bg-slate-50/70' : 'hover:bg-slate-50'} border-b border-slate-100">
-                        <td class="px-3 py-2 font-bold ${dateObj.getDay() === 0 ? 'text-rose-600' : dateObj.getDay() === 6 ? 'text-sky-600' : 'text-slate-800'}">${dayStr} (${dayOfWeek})</td>
-                        <td class="px-3 py-2 text-center ${inLog ? 'text-emerald-700 font-bold' : 'text-slate-300'}">${inLog ? inLog.time : '--:--'}</td>
-                        <td class="px-3 py-2 text-center ${outLog ? 'text-amber-700 font-bold' : 'text-slate-300'}">${outLog ? outLog.time : '--:--'}</td>
-                        <td class="px-3 py-2 text-right font-bold text-slate-700">${workStr}</td>
-                        <td class="px-3 py-2 text-right font-bold text-amber-700">${otStr}</td>
-                    </tr>
-                `;
-            }
-
-            tbody.innerHTML = html;
-            document.getElementById('modal-timecard').classList.remove('hidden');
-            if (window.lucide) lucide.createIcons();
-        }
-
-        function closeTimecardModal() {
-            document.getElementById('modal-timecard').classList.add('hidden');
-        }
-
-        function openManualEntryModal() {
-            const select = document.getElementById('manual-employee-select');
-            select.innerHTML = state.employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${e.id})</option>`).join('');
-
-            const now = new Date();
-            document.getElementById('manual-date').value = getFormattedDateStr(now);
-            document.getElementById('manual-time').value = now.toTimeString().split(' ')[0].substring(0, 5);
-
-            document.getElementById('modal-manual-entry').classList.remove('hidden');
-        }
-
-        function closeManualEntryModal() {
-            document.getElementById('modal-manual-entry').classList.add('hidden');
-        }
-
-        function saveManualEntry() {
-            const empId = document.getElementById('manual-employee-select').value;
-            const emp = state.employees.find(e => e.id === empId);
-            if (!emp) return;
-
-            const date = document.getElementById('manual-date').value;
-            const time = document.getElementById('manual-time').value;
-            const type = document.getElementById('manual-type').value;
-
-            if (!date || !time) {
-                showToast("日付と時間を入力してください");
+            grid.innerHTML = '';
+            if (state.employees.length === 0) {
+                grid.innerHTML = `<div class="col-span-full bg-white p-8 rounded-2xl text-center text-slate-400">従業員が登録されていません。「新規登録」ボタンから登録してください。</div>`;
                 return;
             }
-
-            const newLog = {
-                id: Date.now().toString(),
-                employeeId: emp.id,
-                name: emp.name,
-                role: emp.role,
-                date: date,
-                time: time + ":00",
-                type: type,
-                method: '手動入力'
-            };
-
-            state.logs.unshift(newLog);
-            saveState();
-            closeManualEntryModal();
-            renderLogsTable();
-            renderMonthlyOvertimeReport();
-            showToast("手動打刻を追加しました");
+            state.employees.forEach(emp => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center text-center relative group";
+                const qrContainerId = `qrcode-${emp.id}`;
+                card.innerHTML = `
+                    <div class="absolute top-3 right-3 flex space-x-1">
+                        <button onclick="editEmployee('${emp.id}')" class="p-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg text-slate-500 transition">
+                            <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button onclick="deleteEmployee('${emp.id}')" class="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 rounded-lg text-slate-500 transition">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                    <div class="w-12 h-12 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold text-lg mb-2">
+                        ${emp.name.substring(0,1)}
+                    </div>
+                    <div class="font-bold text-slate-800 text-base">${emp.name}</div>
+                    <div class="text-xs text-slate-500 font-mono mb-1">${emp.id}</div>
+                    <div class="flex items-center gap-1 mb-3">
+                        <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[11px] font-medium rounded-full">${emp.role || '一般'}</span>
+                        <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[11px] font-medium rounded-full">${emp.dept || '共通'}</span>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-3 flex items-center justify-center">
+                        <div id="${qrContainerId}"></div>
+                    </div>
+                    <button onclick="printSingleQrCard('${emp.id}')" class="w-full py-1.5 bg-slate-100 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1">
+                        <i data-lucide="printer" class="w-3.5 h-3.5"></i> カード印刷
+                    </button>
+                `;
+                grid.appendChild(card);
+                setTimeout(() => {
+                    const box = document.getElementById(qrContainerId);
+                    if (box) {
+                        box.innerHTML = '';
+                        new QRCode(box, { text: emp.id, width: 110, height: 110, colorDark: "#1e1b4b", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H });
+                    }
+                }, 50);
+            });
         }
 
-        function openEmployeeModal(employeeId = null) {
-            const titleEl = document.getElementById('employee-modal-title');
-            const origIdInput = document.getElementById('emp-edit-original-id');
-            const idInput = document.getElementById('emp-id');
-            const nameInput = document.getElementById('emp-name');
-            const roleInput = document.getElementById('emp-role');
-
-            if (employeeId) {
-                const emp = state.employees.find(e => e.id === employeeId);
-                if (!emp) return;
-                titleEl.textContent = '従業員の編集';
-                origIdInput.value = emp.id;
-                idInput.value = emp.id;
-                nameInput.value = emp.name;
-                roleInput.value = emp.role;
-            } else {
-                titleEl.textContent = '新規従業員の追加';
-                origIdInput.value = '';
-                idInput.value = '';
-                nameInput.value = '';
-                roleInput.value = '';
-            }
-
+        function openEmployeeModal(editEmp = null) {
+            document.getElementById('emp-id').value = editEmp ? editEmp.id : '';
+            document.getElementById('emp-name').value = editEmp ? editEmp.name : '';
+            document.getElementById('emp-role').value = editEmp ? editEmp.role : '';
+            document.getElementById('emp-dept').value = editEmp ? editEmp.dept : '';
+            document.getElementById('emp-edit-original-id').value = editEmp ? editEmp.id : '';
+            document.getElementById('employee-modal-title').textContent = editEmp ? '従業員情報の編集' : '従業員新規登録';
             document.getElementById('modal-employee').classList.remove('hidden');
         }
 
-        function closeEmployeeModal() {
-            document.getElementById('modal-employee').classList.add('hidden');
-        }
+        function closeEmployeeModal() { document.getElementById('modal-employee').classList.add('hidden'); }
 
         function saveEmployee() {
-            const origId = document.getElementById('emp-edit-original-id').value;
             const id = document.getElementById('emp-id').value.trim();
             const name = document.getElementById('emp-name').value.trim();
             const role = document.getElementById('emp-role').value.trim();
-
-            if (!id || !name) {
-                showToast("従業員IDと名前を入力してください");
-                return;
-            }
-
+            const dept = document.getElementById('emp-dept').value.trim();
+            const origId = document.getElementById('emp-edit-original-id').value;
+            if (!id || !name) { showAlert("入力エラー", "従業員IDと氏名は必須入力です。"); return; }
             if (origId) {
-                const emp = state.employees.find(e => e.id === origId);
-                if (emp) {
-                    emp.id = id;
-                    emp.name = name;
-                    emp.role = role;
-                }
+                const idx = state.employees.findIndex(e => e.id === origId);
+                if (idx !== -1) state.employees[idx] = { id, name, role, dept };
             } else {
-                if (state.employees.some(e => e.id === id)) {
-                    showToast("エラー: このIDは既に使用されています");
-                    return;
-                }
-                state.employees.push({ id, name, role });
+                if (state.employees.some(e => e.id === id)) { showAlert("重複エラー", `ID 「${id}」 は既に使用されています。`); return; }
+                state.employees.push({ id, name, role, dept });
             }
-
-            saveState();
+            saveStateToStorage();
             closeEmployeeModal();
             renderEmployeesGrid();
-            renderMonthlyOvertimeReport();
-            showToast("従業員情報を保存しました");
         }
 
-        function deleteEmployee(empId) {
-            if (!confirm(`従業員 ID:${empId} を削除しますか？`)) return;
-            state.employees = state.employees.filter(e => e.id !== empId);
-            saveState();
-            renderEmployeesGrid();
-            renderMonthlyOvertimeReport();
-            showToast("従業員を削除しました");
-        }
-
-        function openBulkImportModal() {
-            document.getElementById('bulk-import-text').value = '';
-            document.getElementById('modal-bulk-import').classList.remove('hidden');
-        }
-
-        function closeBulkImportModal() {
-            document.getElementById('modal-bulk-import').classList.add('hidden');
-        }
-
-        function processBulkImport() {
+        function editEmployee(id) { const emp = state.employees.find(e => e.id === id); if (emp) openEmployeeModal(emp); }
+        function deleteEmployee(id) { state.employees = state.employees.filter(e => e.id !== id); saveStateToStorage(); renderEmployeesGrid(); }
+        function openBulkImportModal() { document.getElementById('modal-bulk-import').classList.remove('hidden'); }
+        function closeBulkImportModal() { document.getElementById('modal-bulk-import').classList.add('hidden'); }
+        function submitBulkImport() {
             const text = document.getElementById('bulk-import-text').value.trim();
             if (!text) return;
-
             const lines = text.split('\n');
             let addedCount = 0;
-
             lines.forEach(line => {
-                const parts = line.split(/[\t,]+/);
-                if (parts.length >= 2) {
-                    const id = parts[0].trim();
-                    const name = parts[1].trim();
-                    const role = parts[2] ? parts[2].trim() : '';
-
-                    if (id && name && !state.employees.some(e => e.id === id)) {
-                        state.employees.push({ id, name, role });
-                        addedCount++;
-                    }
+                const parts = line.split(',').map(s => s.trim());
+                if (parts.length >= 2 && parts[0] && parts[1]) {
+                    const id = parts[0];
+                    if (!state.employees.some(e => e.id === id)) { state.employees.push({ id: id, name: parts[1], role: parts[2] || '一般', dept: parts[3] || '営業部' }); addedCount++; }
                 }
             });
-
-            saveState();
+            saveStateToStorage();
             closeBulkImportModal();
             renderEmployeesGrid();
-            renderMonthlyOvertimeReport();
-            showToast(`${addedCount} 名の従業員を一括取り込みしました`);
+            showAlert("一括登録完了", `${addedCount} 名の従業員を登録しました。`);
         }
 
-        function exportToCSV() {
-            let csv = "\uFEFF日時,従業員ID,名前,役職,打刻種別,入力方法\n";
-            state.logs.forEach(l => {
-                csv += `"${l.date} ${l.time}","${l.employeeId}","${l.name}","${l.role}","${l.type === 'IN' ? '出勤' : '退勤'}","${l.method}"\n`;
+        function openManualEntryModal() {
+            const sel = document.getElementById('manual-employee-select');
+            sel.innerHTML = '';
+            state.employees.forEach(e => { const opt = document.createElement('option'); opt.value = e.id; opt.textContent = `${e.name} (${e.id})`; sel.appendChild(opt); });
+            const now = new Date();
+            document.getElementById('manual-date').value = getLocalDateStr(now);
+            document.getElementById('manual-time').value = getLocalTimeStr(now);
+            setManualType('IN');
+            document.getElementById('modal-manual-entry').classList.remove('hidden');
+        }
+
+        function closeManualEntryModal() { document.getElementById('modal-manual-entry').classList.add('hidden'); }
+        function setManualType(type) {
+            state.manualPunchType = type;
+            const btnIn = document.getElementById('manual-type-IN');
+            const btnOut = document.getElementById('manual-type-OUT');
+            if (type === 'IN') { btnIn.className = "py-2 border border-emerald-500 bg-emerald-50 text-emerald-700 font-bold rounded-xl text-center"; btnOut.className = "py-2 border border-slate-200 bg-slate-50 text-slate-600 font-bold rounded-xl text-center"; } 
+            else { btnOut.className = "py-2 border border-amber-500 bg-amber-50 text-amber-700 font-bold rounded-xl text-center"; btnIn.className = "py-2 border border-slate-200 bg-slate-50 text-slate-600 font-bold rounded-xl text-center"; }
+        }
+
+        function submitManualPunch() {
+            const empId = document.getElementById('manual-employee-select').value;
+            const dateStr = document.getElementById('manual-date').value;
+            const timeStr = document.getElementById('manual-time').value;
+            const note = document.getElementById('manual-note').value;
+            if (!empId || !dateStr || !timeStr) { showAlert("入力指定エラー", "日付と時刻を正しく選択してください。"); return; }
+            const emp = state.employees.find(e => e.id === empId);
+            const logEntry = { id: 'LOG_' + Date.now(), empId: empId, name: emp ? emp.name : empId, role: emp ? emp.role : '一般', dept: emp ? emp.dept : '共通', type: state.manualPunchType, timestamp: `${dateStr}T${timeStr}:00`, method: 'MANUAL', note: note || '手動入力' };
+            state.logs.unshift(logEntry);
+            saveStateToStorage();
+            closeManualEntryModal();
+            if (state.currentTab === 'logs') renderLogsTable();
+            showAlert("打刻完了", `${emp ? emp.name : empId} さんの手動打刻を登録しました。`);
+        }
+
+        function renderSettingsView() {
+            document.getElementById('setting-sound').checked = state.settings.soundEnabled;
+            document.getElementById('setting-work-start').value = state.settings.workStart || "08:10";
+            document.getElementById('setting-work-end').value = state.settings.workEnd || "16:40";
+            document.getElementById('setting-webhook-url').value = state.settings.webhookUrl || "";
+            const gasCodeArea = document.getElementById('gas-code-textarea');
+            if (gasCodeArea) gasCodeArea.value = getGasScriptCode();
+        }
+
+        function getGasScriptCode() {
+            return `function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (data.action === 'log') {
+      var sheet = ss.getSheetByName('打刻ログ') || ss.insertSheet('打刻ログ');
+      var log = data.log;
+      sheet.appendRow([log.id, log.timestamp, log.empId, log.name, log.role, log.dept, log.type === 'IN' ? '出勤' : '退勤', log.note || '']);
+      return ContentService.createTextOutput(JSON.stringify({status: 'success'})).setMimeType(ContentService.MimeType.JSON);
+    }
+    if (data.action === 'sync_monthly') {
+      var sheetName = (data.month || '月次') + '_集計';
+      var sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
+      sheet.clear();
+      sheet.appendRow(['従業員ID', '氏名', '役職', '出勤日数', '総労働時間(時間)', '総残業時間', '状態アラート']);
+      if (data.summary && data.summary.length > 0) {
+        data.summary.forEach(function(s) { sheet.appendRow([s.empId, s.name, s.role, s.daysCount, s.totalWorkHours, s.totalOvertimeFormatted, s.alertStatus]); });
+      }
+      return ContentService.createTextOutput(JSON.stringify({status: 'success'})).setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch(err) { return ContentService.createTextOutput(JSON.stringify({status: 'error'})).setMimeType(ContentService.MimeType.JSON); }
+}
+
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('従業員名簿');
+  if (!sheet) return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
+  var rows = sheet.getDataRange().getValues();
+  var employees = [];
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0]) employees.push({id: String(rows[i][0]), name: String(rows[i][1] || ''), role: String(rows[i][2] || '一般'), dept: String(rows[i][3] || '')});
+  }
+  return ContentService.createTextOutput(JSON.stringify(employees)).setMimeType(ContentService.MimeType.JSON);
+}`;
+        }
+
+        function copyGasCode() { const codeArea = document.getElementById('gas-code-textarea'); if (!codeArea) return; codeArea.select(); document.execCommand('copy'); showAlert("コピー完了", "GASコードをクリップボードにコピーしました！"); }
+
+        function saveSettings() {
+            state.settings.soundEnabled = document.getElementById('setting-sound').checked;
+            state.settings.workStart = document.getElementById('setting-work-start').value;
+            state.settings.workEnd = document.getElementById('setting-work-end').value;
+            state.settings.webhookUrl = document.getElementById('setting-webhook-url').value.trim();
+            saveStateToStorage();
+            const syncBadge = document.getElementById('sync-badge');
+            if (state.settings.webhookUrl) { syncBadge.className = "text-[10px] bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 px-2 py-0.5 rounded-full font-normal hidden sm:inline-flex items-center gap-1"; syncBadge.innerHTML = `<i data-lucide="cloud-check" class="w-3 h-3"></i> スプレッドシート連携中`; }
+            else { syncBadge.className = "text-[10px] bg-slate-500/30 text-slate-300 border border-slate-400/40 px-2 py-0.5 rounded-full font-normal hidden sm:inline-flex items-center gap-1"; syncBadge.innerHTML = `<i data-lucide="hard-drive" class="w-3 h-3"></i> ローカル保存中`; }
+            lucide.createIcons();
+        }
+
+        function testGasConnection() {
+            saveSettings();
+            if (!state.settings.webhookUrl) { showAlert("URL未入力", "GAS WebアプリのURLを入力してください。"); return; }
+            fetch(state.settings.webhookUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'ping', timestamp: getLocalDateTimeISO(new Date()) }) }).then(() => { showAlert("テスト通信完了", "GASへリクエストを送信しました！スプレッドシートをご確認ください。"); }).catch(err => { showAlert("通信エラー", "接続エラーが発生しました。URLとGASの公開権限をご確認ください。"); });
+        }
+
+        function syncLogToGAS(logEntry) { if (!state.settings.webhookUrl) return; fetch(state.settings.webhookUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'log', log: logEntry }) }).catch(e => console.warn("GAS Sync Failed", e)); }
+
+        function syncMonthlyToGoogleSheet() {
+            if (!state.settings.webhookUrl) { showAlert("連携未設定", "設定タブからGAS WebアプリURLを登録してください。"); return; }
+            const targetMonthStr = document.getElementById('monthly-select-month').value || getLocalMonthStr(new Date());
+            const workStartSetting = timeToMinutes(state.settings.workStart || "08:10");
+            const workEndSetting = timeToMinutes(state.settings.workEnd || "16:40");
+
+            const monthlySummaries = state.employees.map(emp => {
+                const empLogs = state.logs.filter(l => l.empId === emp.id && getLocalMonthStr(l.timestamp) === targetMonthStr);
+                const daysMap = {};
+                empLogs.forEach(l => {
+                    const d = getLocalDateStr(l.timestamp);
+                    if (!daysMap[d]) daysMap[d] = { in: null, out: null };
+                    const time = getLocalTimeStr(l.timestamp);
+                    if (l.type === 'IN') { if (!daysMap[d].in || time < daysMap[d].in) daysMap[d].in = time; }
+                    else if (l.type === 'OUT') { if (!daysMap[d].out || time > daysMap[d].out) daysMap[d].out = time; }
+                });
+
+                let totalWorkMins = 0;
+                let totalOtMins = 0;
+                Object.values(daysMap).forEach(day => {
+                    if (day.in && day.out) {
+                        const inM = timeToMinutes(day.in);
+                        const outM = timeToMinutes(day.out);
+                        let duration = Math.max(0, outM - inM);
+                        if (duration > 360) duration -= 60;
+                        totalWorkMins += duration;
+                        let overtime = Math.max(0, workStartSetting - inM) + Math.max(0, outM - workEndSetting);
+                        totalOtMins += overtime;
+                    }
+                });
+                return { 
+                    empId: emp.id, 
+                    name: emp.name, 
+                    role: emp.role || '一般', 
+                    daysCount: Object.keys(daysMap).length, 
+                    totalWorkHours: (totalWorkMins / 60).toFixed(1), 
+                    totalOvertimeFormatted: formatMinutesToHM(totalOtMins), 
+                    alertStatus: (totalOtMins/60 >= 80) ? "過労死ライン警戒" : "正常" 
+                };
             });
-            downloadCSVFile(csv, `打刻履歴_${getFormattedDateStr(new Date())}.csv`);
+
+            fetch(state.settings.webhookUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'sync_monthly', month: targetMonthStr, summary: monthlySummaries }) }).then(() => { showAlert("同期送信完了", "Googleスプレッドシートへ送信しました。"); }).catch(err => { showAlert("送信エラー", "スプレッドシートへのデータ送信に失敗しました。"); });
+        }
+
+        function syncEmployeesFromSheet() { if (!state.settings.webhookUrl) { showAlert("連携未設定", "設定タブからGAS WebアプリURLを登録してください。"); return; } fetch(`${state.settings.webhookUrl}?action=get_employees`).then(res => res.json()).then(data => { if (Array.isArray(data)) { state.employees = data; saveStateToStorage(); renderEmployeesGrid(); showAlert("同期完了", "同期しました。"); } }).catch(err => { showAlert("エラー", "読み込み失敗。"); }); }
+
+        function exportToCSV() {
+            let csvContent = "\uFEFF日時,従業員ID,氏名,役職,打刻種別,備考\n";
+            state.logs.forEach(l => { const d = new Date(l.timestamp); const dtStr = `${getLocalDateStr(d)} ${getLocalTimeStr(d)}:${String(d.getSeconds()).padStart(2,'0')}`; csvContent += `"${dtStr}","${l.empId}","${l.name}","${l.role}","${l.type === 'IN' ? '出勤' : '退勤'}","${l.note || ''}"\n`; });
+            downloadCSVFile(csvContent, `打刻履歴_${getLocalDateStr(new Date())}.csv`);
         }
 
         function exportMonthlyReportCSV() {
-            const monthStr = document.getElementById('monthly-select-month').value;
-            let csv = `\uFEFF月次残業集計報告書 (${monthStr})\n従業員ID,氏名,役職,出勤日数,総労働時間(時間),総残業時間\n`;
-
-            const monthlyLogs = state.logs.filter(l => l.date && l.date.startsWith(monthStr));
-
+            const targetMonthStr = document.getElementById('monthly-select-month').value || getLocalMonthStr(new Date());
+            let csvContent = `\uFEFF${targetMonthStr}度 月次勤怠・残業集計\n従業員ID,氏名,役職,出勤日数,総労働時間(時間),総残業時間\n`;
             state.employees.forEach(emp => {
-                const empLogs = monthlyLogs.filter(l => l.employeeId === emp.id);
-                const dateMap = {};
-                empLogs.forEach(l => {
-                    if (!dateMap[l.date]) dateMap[l.date] = {};
-                    if (l.type === 'IN' && !dateMap[l.date].in) dateMap[l.date].in = l.time;
-                    if (l.type === 'OUT') dateMap[l.date].out = l.time;
-                });
-
-                let workedDays = 0;
-                let totalWorkMinutes = 0;
-                let totalOvertimeMinutes = 0;
-
-                const [stdEndH, stdEndM] = state.settings.workEnd.split(':').map(Number);
-                const stdEndMinutes = stdEndH * 60 + stdEndM;
-
-                Object.keys(dateMap).forEach(date => {
-                    const rec = dateMap[date];
-                    if (rec.in) {
-                        workedDays++;
-                        if (rec.out) {
-                            const [inH, inM] = rec.in.split(':').map(Number);
-                            const [outH, outM] = rec.out.split(':').map(Number);
-                            let duration = (outH * 60 + outM) - (inH * 60 + inM);
-                            if (duration > 360) duration -= 60;
-                            if (duration > 0) totalWorkMinutes += duration;
-
-                            if ((outH * 60 + outM) > stdEndMinutes) {
-                                totalOvertimeMinutes += ((outH * 60 + outM) - stdEndMinutes);
-                            }
-                        }
-                    }
-                });
-
-                const totalH = (totalWorkMinutes / 60).toFixed(1);
-                const otH = Math.floor(totalOvertimeMinutes / 60);
-                const otM = totalOvertimeMinutes % 60;
-
-                csv += `"${emp.id}","${emp.name}","${emp.role}",${workedDays},${totalH},"${otH}時間${otM}分"\n`;
+                const empLogs = state.logs.filter(l => l.empId === emp.id && getLocalMonthStr(l.timestamp) === targetMonthStr);
+                const daysMap = {};
+                empLogs.forEach(l => { const d = getLocalDateStr(l.timestamp); if (!daysMap[d]) daysMap[d] = { in: null, out: null }; const time = getLocalTimeStr(l.timestamp); if (l.type === 'IN') daysMap[d].in = time; else daysMap[d].out = time; });
+                let totalWorkMins = 0; let totalOtMins = 0;
+                const workStartM = timeToMinutes(state.settings.workStart || "08:10");
+                const workEndM = timeToMinutes(state.settings.workEnd || "16:40");
+                Object.values(daysMap).forEach(day => { if (day.in && day.out) { const inM = timeToMinutes(day.in); const outM = timeToMinutes(day.out); let dur = Math.max(0, outM - inM); if (dur > 360) dur -= 60; totalWorkMins += dur; totalOtMins += (Math.max(0, workStartM - inM) + Math.max(0, outM - workEndM)); } });
+                csvContent += `"${emp.id}","${emp.name}","${emp.role}","${Object.keys(daysMap).length}","${(totalWorkMins/60).toFixed(1)}","${formatMinutesToHM(totalOtMins)}"\n`;
             });
-
-            downloadCSVFile(csv, `月次残業報告_${monthStr}.csv`);
+            downloadCSVFile(csvContent, `月次残業報告_${targetMonthStr}.csv`);
         }
 
-        function exportSingleTimecardCSV() {
-            if (!state.currentTimecardContext) return;
-            const { employee, month } = state.currentTimecardContext;
-
-            let csv = `\uFEFF${employee.name} タイムカード明細 (${month})\n従業員ID,${employee.id},役職,${employee.role}\n\n日付,曜日,出勤時刻,退勤時刻,実労働時間,残業時間\n`;
-
-            const [year, mNum] = month.split('-').map(Number);
-            const daysInMonth = new Date(year, mNum, 0).getDate();
-            const monthLogs = state.logs.filter(l => l.employeeId === employee.id && l.date && l.date.startsWith(month));
-
-            const [stdEndH, stdEndM] = state.settings.workEnd.split(':').map(Number);
-            const stdEndMinutes = stdEndH * 60 + stdEndM;
-
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dayStr = `${month}-${String(d).padStart(2, '0')}`;
-                const dateObj = new Date(year, mNum - 1, d);
-                const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()];
-
-                const dayLogs = monthLogs.filter(l => l.date === dayStr);
-                const inLog = dayLogs.find(l => l.type === 'IN');
-                const outLogs = dayLogs.filter(l => l.type === 'OUT');
-                const outLog = outLogs.length > 0 ? outLogs[outLogs.length - 1] : null;
-
-                let workStr = '-';
-                let otStr = '-';
-
-                if (inLog && outLog) {
-                    const [inH, inM] = inLog.time.split(':').map(Number);
-                    const [outH, outM] = outLog.time.split(':').map(Number);
-
-                    let duration = (outH * 60 + outM) - (inH * 60 + inM);
-                    if (duration > 360) duration -= 60;
-                    if (duration > 0) workStr = (duration / 60).toFixed(1);
-
-                    if ((outH * 60 + outM) > stdEndMinutes) {
-                        const otMins = (outH * 60 + outM) - stdEndMinutes;
-                        otStr = `${Math.floor(otMins / 60)}時間${otMins % 60}分`;
-                    }
-                }
-
-                csv += `"${dayStr}","${dayOfWeek}","${inLog ? inLog.time : ''}","${outLog ? outLog.time : ''}","${workStr}","${otStr}"\n`;
-            }
-
-            downloadCSVFile(csv, `タイムカード_${employee.id}_${employee.name}_${month}.csv`);
+        function exportQrExcelCSV() { let csvContent = "\uFEFF従業員ID,氏名,役職,部署\n"; state.employees.forEach(e => { csvContent += `"${e.id}","${e.name}","${e.role}","${e.dept}"\n`; }); downloadCSVFile(csvContent, `従業員QR名簿_${getLocalDateStr(new Date())}.csv`); }
+        function downloadCSVFile(content, fileName) { const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement("a"); const url = URL.createObjectURL(blob); link.setAttribute("href", url); link.setAttribute("download", fileName); document.body.appendChild(link); link.click(); document.body.removeChild(link); }
+        function printAllQrCards() {
+            const container = document.getElementById('print-cards-grid'); container.innerHTML = '';
+            state.employees.forEach(emp => {
+                const card = document.createElement('div'); card.className = "border-2 border-slate-800 p-4 rounded-xl flex items-center space-x-4 bg-white page-break-inside-avoid";
+                const qid = `print-qr-${emp.id}`; card.innerHTML = `<div id="${qid}"></div><div><div class="text-xs text-slate-500">${emp.dept}</div><div class="text-lg font-bold">${emp.name}</div><div class="text-xs font-mono text-slate-600">ID: ${emp.id}</div><div class="text-xs text-slate-400 mt-1">${emp.role}</div></div>`; container.appendChild(card);
+                setTimeout(() => { const box = document.getElementById(qid); if (box) new QRCode(box, { text: emp.id, width: 90, height: 90, colorDark: "#000000", colorLight: "#ffffff" }); }, 50);
+            });
+            setTimeout(() => { window.print(); }, 300);
         }
 
-        function exportEmployeesCSV() {
-            let csv = "\uFEFF従業員ID,氏名,役職\n";
-            state.employees.forEach(e => {
-                csv += `"${e.id}","${e.name}","${e.role}"\n`;
-            });
-            downloadCSVFile(csv, `従業員名簿_${getFormattedDateStr(new Date())}.csv`);
-        }
-
-        function exportQrExcelCSV() {
-            let csv = "\uFEFF従業員ID,氏名,役職,QRコードデータ\n";
-            state.employees.forEach(e => {
-                csv += `"${e.id}","${e.name}","${e.role}","${e.id}"\n`;
-            });
-            downloadCSVFile(csv, `従業員QRコードデータ一覧_${getFormattedDateStr(new Date())}.csv`);
+        function printSingleQrCard(empId) {
+            const emp = state.employees.find(e => e.id === empId); if (!emp) return;
+            const container = document.getElementById('print-cards-grid'); container.innerHTML = '';
+            const card = document.createElement('div'); card.className = "border-2 border-slate-800 p-6 rounded-xl flex items-center space-x-6 bg-white w-96 mx-auto";
+            const qid = `print-qr-single-${emp.id}`; card.innerHTML = `<div id="${qid}"></div><div><div class="text-xs text-slate-500">${emp.dept}</div><div class="text-xl font-bold">${emp.name}</div><div class="text-sm font-mono text-slate-600">ID: ${emp.id}</div><div class="text-xs text-slate-400 mt-1">${emp.role}</div></div>`; container.appendChild(card);
+            setTimeout(() => { const box = document.getElementById(qid); if (box) new QRCode(box, { text: emp.id, width: 100, height: 100, colorDark: "#000000", colorLight: "#ffffff" }); window.print(); }, 200);
         }
 
         function exportFullSystemBackup() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
-            const dlAnchor = document.createElement('a');
-            dlAnchor.setAttribute("href", dataStr);
-            dlAnchor.setAttribute("download", `勤怠管理システム_バックアップ_${getFormattedDateStr(new Date())}.json`);
-            document.body.appendChild(dlAnchor);
-            dlAnchor.click();
-            dlAnchor.remove();
-            showToast("全データのバックアップ(JSON)をダウンロードしました");
+            const backupData = { version: "2.0", exportDate: getLocalDateTimeISO(new Date()), state: state };
+            const jsonStr = JSON.stringify(backupData, null, 2);
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `QR勤怠バックアップ_${getLocalDateStr(new Date())}.json`; a.click();
         }
 
         function importFullSystemBackup(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
+            const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
-                try {
-                    const importedState = JSON.parse(e.target.result);
-                    if (importedState && Array.isArray(importedState.employees) && Array.isArray(importedState.logs)) {
-                        state.employees = importedState.employees;
-                        state.logs = importedState.logs;
-                        if (importedState.settings) state.settings = Object.assign(state.settings, importedState.settings);
-
-                        saveState();
-                        renderLogsTable();
-                        renderMonthlyOvertimeReport();
-                        renderEmployeesGrid();
-                        showToast("バックアップデータからの復元が完了しました");
-                    } else {
-                        showToast("エラー: 無効なバックアップファイル形式です");
-                    }
-                } catch (err) {
-                    showToast("エラー: ファイルの読み込みに失敗しました");
-                }
+                try { const data = JSON.parse(e.target.result); if (data && data.state) { state = data.state; saveStateToStorage(); switchTab(state.currentTab || 'kiosk'); showAlert("復元完了", "システムバックアップデータを正常に読み込みました。"); } }
+                catch (err) { showAlert("復元エラー", "有効なバックアップJSONファイルではありません。"); }
             };
             reader.readAsText(file);
         }
 
-        function printAllQrCards() {
-            const container = document.getElementById('print-qr-container');
-            container.innerHTML = state.employees.map(emp => `
-                <div class="border-2 border-slate-800 p-6 rounded-2xl flex flex-col items-center justify-center text-center space-y-3">
-                    <h2 class="text-xl font-bold text-slate-900">${escapeHtml(emp.name)}</h2>
-                    <p class="text-xs text-slate-600 font-semibold">${escapeHtml(emp.role)}</p>
-                    <div id="print-qr-${emp.id}" class="my-2"></div>
-                    <p class="text-xs font-mono font-bold text-slate-800">ID: ${escapeHtml(emp.id)}</p>
-                </div>
-            `).join('');
+        function confirmResetData() { if (confirm("全ての打刻履歴と従業員名簿を消去して初期状態に戻しますか？")) { localStorage.clear(); location.reload(); } }
 
-            state.employees.forEach(emp => {
-                const target = document.getElementById(`print-qr-${emp.id}`);
-                if (target) {
-                    new QRCode(target, { text: emp.id, width: 140, height: 140 });
-                }
-            });
-
-            setTimeout(() => { window.print(); }, 300);
-        }
-
-        function syncMonthlyToGoogleSheet() {
-            if (!state.settings.webhookUrl) {
-                showToast("連携設定でGAS Webhook URLを登録してください");
-                return;
-            }
-
-            const monthStr = document.getElementById('monthly-select-month').value;
-            const payload = {
-                action: "SYNC_MONTHLY",
-                month: monthStr,
-                logs: state.logs.filter(l => l.date && l.date.startsWith(monthStr)),
-                employees: state.employees
-            };
-
-            fetch(state.settings.webhookUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).then(() => {
-                showToast("月次集計データの同期リクエストを送信しました");
-            }).catch(e => {
-                showToast("送信エラーが発生しました");
-            });
-        }
-
-        function syncEmployeesFromSheet() {
-            if (!state.settings.webhookUrl) {
-                showToast("連携設定でGAS Webhook URLを登録してください");
-                return;
-            }
-            showToast("GASからの同期を開始しました");
-        }
-
-        function deleteLogEntry(index) {
-            state.logs.splice(index, 1);
-            saveState();
-            renderLogsTable();
-            updateTodayKioskStats();
-            showToast("打刻記録を削除しました");
-        }
-
-        function confirmResetData() {
-            if (confirm("全ての打刻履歴および従業員データを完全削除して初期化しますか？")) {
-                localStorage.clear();
-                state.employees = [...DEFAULT_EMPLOYEES];
-                state.logs = [];
-                saveState();
-                location.reload();
-            }
-        }
-
-        // Helper Utilities
-        function getFormattedDateStr(dateObj) {
-            const y = dateObj.getFullYear();
-            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const d = String(dateObj.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}`;
-        }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return String(str)
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-
-        function downloadCSVFile(content, fileName) {
-            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", fileName);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function showToast(msg) {
-            const toast = document.getElementById('app-toast');
-            const msgEl = document.getElementById('toast-message');
-            if (!toast || !msgEl) return;
-
-            msgEl.textContent = msg;
-            toast.classList.remove('translate-y-[-100px]', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('translate-y-[-100px]', 'opacity-0');
-            }, 3000);
-        }
+        window.onload = function () {
+            loadStateFromStorage();
+            setInterval(updateClock, 1000);
+            updateClock();
+            const monthInput = document.getElementById('monthly-select-month');
+            if (monthInput) monthInput.value = getLocalMonthStr(new Date());
+            switchTab('kiosk');
+            saveSettings();
+        };
     </script>
 </body>
 </html>
